@@ -11,6 +11,8 @@ For runnable demos, see [/demo](../../demo/).
 |------|-------------|
 | `express-codebase.md` | DST analysis of a Node.js/Express codebase |
 | `real-world.md` | 🔥 Real-world repo analyzed — before/after DST |
+| `web-llm-chat-case-study.md` | mlc-ai/web-llm-chat · Residual regime (Θ 0/100) · observability gap 100 pts |
+| `facebook-react-case-study.md` | ⭐ facebook/react · 228k stars · Elastic regime (Θ 100/100) · inverted observability gap · lane system κ_c analysis |
 
 ## How to read these
 

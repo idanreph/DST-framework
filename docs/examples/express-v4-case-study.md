@@ -1,4 +1,5 @@
 # Case Study: expressjs/express ⭐ 65k Stars
+This is a DST structural analysis, not a statement about runtime correctness.
 
 **DST V4 Diagnostic — Live Scan Results**  
 *Scanned March 2026 · DST Framework v4 · SSRN 6434119*  

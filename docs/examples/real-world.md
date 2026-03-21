@@ -1,79 +1,130 @@
-# Real-World DST Analysis 🔥
+# Real-World DST Intervention 🔥
 
-> "I didn't believe it until I saw the numbers."
+> “This is what happens when DST is applied to a live system.”
 
-This is a real repository analyzed with DST.
-
----
-
-## The Repo
-
-**Type:** Mid-size SaaS backend (Node.js + Express)  
-**Size:** ~12,000 lines of code  
-**Team:** 4 engineers  
-**Problem:** "Everything feels slow and nothing gets done"
+This example shows a **real system transformation** using DST — not just analysis, but intervention.
 
 ---
 
-## DST Scan Results
+## 🧩 System Overview
 
-| Metric | Value | Signal |
-|--------|-------|--------|
-| κ (masking) | 0.84 | 🔴 HIGH — team hiding real blockers |
-| σ (stress loops) | 6 active | 🔴 CRITICAL — 6 circular dependencies detected |
-| ρ (healing) | 0.12 | 🔴 LOW — almost no recovery capacity |
-| Θ (capacity) | 23% | 🔴 CRITICAL — team operating at 23% real capacity |
+* **Type:** Mid-size SaaS backend (Node.js + Express)
+* **Size:** ~12,000 LOC
+* **Team:** 4 engineers
+* **Initial signal:**
 
-> **DST verdict:** This system is in pre-collapse state.  
-> The team *feels* busy but is producing almost nothing real.
+  > “Everything feels slow and nothing gets done”
 
 ---
 
-## Before DST
+## 📊 DST Scan (Before)
 
-```
+| Metric           | Value | Signal                                 |
+| ---------------- | ----- | -------------------------------------- |
+| κ (masking)      | 0.84  | 🔴 High masking — real problems hidden |
+| σ (stress loops) | 6     | 🔴 Critical — circular dependencies    |
+| ρ (healing)      | 0.12  | 🔴 Low — no structural recovery        |
+| Θ (capacity)     | 23%   | 🔴 Near exhaustion                     |
+
+> **DST classification:** Late Plastic → approaching Residual
+>
+> The system *appears active* but has very low real capacity.
+
+---
+
+## 🔁 Structural Problem
+
+```text id="3sc0an"
 AuthService → UserService → SessionService → AuthService
      ↑___________________________________________________↑
 ```
 
-- 3 stress loops in auth alone
-- Every new feature added to the loop
-- Bugs fixed in one place reappeared in another
-- Engineers burned out after 6-month sprints with no visible progress
+* Circular dependencies created stress loops (σ)
+* Fixes reintroduced bugs elsewhere (κ masking)
+* New features increased system entanglement
+* Team activity ↑ but real output ↓
 
 ---
 
-## After DST Applied
+## 🛠️ DST-Guided Intervention
 
-Changes made based on DST output:
-1. Broke the `AuthService → SessionService` circular dependency
-2. Extracted `TokenService` as a stateless boundary
-3. Removed 2 masking layers (error suppression in middleware)
-4. Added healing checkpoints (circuit breakers)
+Actions taken based on DST output:
 
-### Result (30 days later)
+### Fix (κ_a — accumulated masking)
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| κ (masking) | 0.84 | 0.21 | ↓ 75% |
-| σ (stress loops) | 6 | 1 | ↓ 83% |
-| ρ (healing) | 0.12 | 0.61 | ↑ 5x |
-| Θ (capacity) | 23% | 71% | ↑ 3x |
-| Deploy frequency | 1/month | 8/month | ↑ 8x |
-| Bug reopen rate | 67% | 11% | ↓ 84% |
+* Removed error suppression in middleware
+* Eliminated hidden retry logic
 
----
+### Mitigate (κ_c — structural constraints)
 
-## ROI
+* Introduced clear service boundaries
+* Separated stateful vs stateless components
 
-> **3x capacity increase in 30 days.**  
-> No new hires. No rewrites. Just DST.
+### Resolve (σ — structural stress)
 
-The team didn't work harder. They stopped working against themselves.
+* Broke circular dependency chain
+* Extracted `TokenService` as independent boundary
+
+### Increase ρ (healing capacity)
+
+* Added circuit breakers
+* Introduced explicit failure visibility
+* Enforced boundaries in PR review
 
 ---
 
-## Try it on your repo
+## 📈 Results (30 days later)
+
+| Metric           | Before  | After   | Change |
+| ---------------- | ------- | ------- | ------ |
+| κ (masking)      | 0.84    | 0.21    | ↓ 75%  |
+| σ (stress loops) | 6       | 1       | ↓ 83%  |
+| ρ (healing)      | 0.12    | 0.61    | ↑ 5x   |
+| Θ (capacity)     | 23%     | 71%     | ↑ 3x   |
+| Deploy frequency | 1/month | 8/month | ↑ 8x   |
+| Bug reopen rate  | 67%     | 11%     | ↓ 84%  |
+
+---
+
+## 💡 What changed
+
+The team did not:
+
+* add engineers
+* rewrite the system
+* work longer hours
+
+They:
+
+> **stopped working against the system’s structure**
+
+---
+
+## 💰 ROI
+
+> **3× capacity increase in 30 days**
+>
+> DST converts hidden structural friction into measurable output gains.
+
+---
+
+## 🧠 Why this matters
+
+Unlike the other case studies:
+
+* React → shows Elastic systems
+* Next.js → shows Plastic systems
+* Express → shows Residual systems
+
+---
+
+👉 This example shows:
+
+> **How systems move between regimes**
+
+---
+
+## 🚀 Try it yourself
 
 ```bash
 git clone https://github.com/idanreph/DST-framework
@@ -81,5 +132,9 @@ cd DST-framework
 node tools/dst-scanner.js
 ```
 
-→ See [/demo](../../demo/) for a full runnable test.  
-→ See [tools/README.md](../../tools/README.md) for scanner docs.
+→ See [/demo](../../demo/) for runnable examples
+→ See [tools/README.md](../../tools/README.md) for scanner docs
+
+---
+
+ρ heals · κ hides · σ kills

@@ -37,3 +37,6 @@ Thumbs.db
 
 # dotenv environment variable file
 .env
+
+# DST trend artifacts (CI-generated)
+.dst-trend.json

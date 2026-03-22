@@ -1,35 +1,41 @@
 # DST Framework — Declining Stress Threshold
 
-**Your system isn’t failing because you’re bad at your job.**
-**It’s failing because the structure allows damage to hide.**
+> **Your system isn’t failing because you’re a bad engineer.**
+> **It’s failing because the structure allows damage to hide.**
 
-DST is a framework + tool that detects:
+DST is a **structural diagnostics framework + CI tool** that measures:
 
-* Hidden technical debt (κ)
-* Stress amplification loops (σ)
-* Real system capacity (Θ)
-* The difference between healing (ρ) and masking (κ)
+* **Θ (theta)** — real remaining capacity
+* **κ (kappa)** — masking (technical debt that hides, not fixes)
+* **σ (sigma)** — stress amplification loops
+* **ρ (rho)** — real structural healing
 
 ---
 
 ## ⚡ What This Actually Does
 
-Install DST in your repo → every pull request gets analyzed.
+Add DST to your repo → every pull request gets analyzed.
 
-You see:
+You don’t just see “code quality”.
 
-```
-DST Score: 42/100 [Plastic]
+You see **structural reality**:
+
+```text
+Θ = 42/100  → Plastic
+
+Apparent = 71  → Gap = 29 ⚠️
 
 💰 Cost of masking: $2.1M/year  
-🔒 Security risk: HIGH  
-⏱️ Uptime impact: -0.8%  
+⚠️ Stability is being maintained artificially (κ)  
+📉 dΘ/dt = -2.3 per PR → Declining  
 
-⚠️ Stability is being maintained artificially (κ).
+🟥 Structural replacement may become necessary soon
 ```
 
-This is not a lint tool.
-This is a **structural diagnosis of your system.**
+---
+
+> This is not a linter.
+> This is a **capacity measurement system for software**.
 
 ---
 
@@ -45,110 +51,138 @@ cp .github/workflows/dst-diagnostic.yml .github/workflows/
 git add . && git commit -m "Add DST diagnostic" && git push
 ```
 
-Next PR → full analysis.
+Next PR → full structural analysis.
 
 ---
 
 ## 🧠 The Model
 
-```
-dΘ/dt = ρ − σ_eff
+```text
+dΘ/dt = ρ − (σ − κ)
 ```
 
-* **σ (sigma)** — stress loops that amplify problems
-* **ρ (rho)** — real healing (always limited)
-* **κ (kappa)** — masking (hides damage, does not fix it)
-* **Θ (theta)** — real remaining capacity
+* **σ (stress)** → things that amplify problems
+* **ρ (healing)** → real structural improvement
+* **κ (masking)** → hides damage, doesn’t remove it
+* **Θ (capacity)** → how much change the system can still absorb
 
-**Key insight:**
+---
+
+### 🔍 Key insight
 
 > A system can look stable while actually collapsing.
 
-This is the **observability gap**.
+This is the **observability gap**:
+
+```text
+Apparent ≠ Real
+```
 
 ---
 
 ## 🔥 The Four Regimes
 
-| Score  | Regime          | Reality                           |
-| ------ | --------------- | --------------------------------- |
-| 75–100 | 🟢 Elastic      | Real health. Fast development.    |
-| 50–74  | 🟡 Plastic      | Works via masking. Hidden decay.  |
-| 25–49  | 🟠 Late Plastic | Cost rising fast. Fragility high. |
-| 0–24   | 🔴 Residual     | Collapse delayed, not avoided.    |
+| Θ Range | Regime          | Reality                                 |
+| ------- | --------------- | --------------------------------------- |
+| 75–100  | 🟢 Elastic      | Structure dominates. Fast, safe change. |
+| 50–74   | 🟡 Plastic      | Works, but balance is fragile.          |
+| 25–49   | 🟠 Late Plastic | Costs rising fast. Breakage likely.     |
+| 0–24    | 🔴 Residual     | Masking dominates. Rewrite approaching. |
 
 ---
 
 ## 🔍 What DST Detects
 
-### κ — masking patterns
+### κ — masking (hidden debt)
 
-* Retry loops hiding instability
-* Silent error swallowing
-* God functions
-* TODO/HACK accumulation
+* Silent error handling
+* Retry loops hiding failure
+* TODO / HACK accumulation
 * Implicit state mutation
+* “It works” code paths
 
-### σ — stress loops
+---
 
+### σ — stress (amplifiers)
+
+* Circular dependencies
 * N+1 queries
-* Unbounded memory growth
+* Unbounded growth patterns
 
-### ρ — real health
+---
+
+### ρ — healing (real structure)
 
 * Pure functions
+* Explicit boundaries
 * Immutable state
-* Explicit error handling
+* Observable failures
 
 ---
 
 ## 💰 Why This Matters
 
-Most teams feel this but cannot quantify it:
+Most teams feel this, but can’t measure it:
 
-* Features take longer every sprint
-* Bugs multiply
-* Onboarding slows down
-* “Quick fixes” make things worse
+* features slow down every sprint
+* bugs multiply
+* onboarding gets harder
+* quick fixes make things worse
 
-DST shows:
+---
 
-> **exactly how much this costs you — in dollars and time**
+DST turns that into:
+
+> **measurable capacity, trajectory, and cost**
+
+---
+
+## 📊 Real-World Results
+
+DST applied to major systems:
+
+```text
+React     → Θ ~100 → Elastic
+Next.js   → Θ ~65  → Plastic
+Express   → Θ ~0   → Residual
+```
+
+→ See `/examples`
 
 ---
 
 ## 📂 Repo Structure
 
 * `/tools` → scanner + GitHub action
-* `/docs/pitch` → explanations for engineers / CTOs
+* `/examples` → real-world case studies
 * `/docs/math` → axioms + equations
-* `/docs/research` → macro + system analysis
+* `/docs/pitch` → engineering + CTO explanations
 * `/demo` → runnable examples
 
 ---
 
 ## 📄 The Theory
 
-* SSRN 6434119 — full framework
+* SSRN 6434119 — full DST framework
 * SSRN 6434258 — financial system application
 * DST Compass — interactive diagnostic
 
 ---
 
-## 🧠 The Discovery
+## 🧠 Origin
 
 DST started from a macro anomaly:
 
 > Systems that appeared stable while their real capacity declined.
 
-What began in financial markets turned out to apply to:
+It turned out to apply to:
 
 * codebases
 * companies
 * AI systems
 * biological systems
 
-→ Read: MEMO.md
+→ See `MEMO.md`
 
 ---
 
@@ -177,4 +211,4 @@ Use it. Break it. Improve it.
 
 ---
 
-**ρ heals · κ hides · σ kills**
+ρ heals · κ hides · σ kills

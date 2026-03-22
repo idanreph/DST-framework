@@ -10,24 +10,25 @@ The framework did not begin as an idea.
 
 It began as a contradiction that refused to disappear.
 
-Across financial markets, software systems, organizations, and biological processes, the same pattern kept emerging:
+Across financial markets, software systems, organizations, and biological processes, the same pattern emerged:
 
-The system remained **operational**.  
-The metrics indicated **stability**.  
+The system remained **operational**.
+The metrics indicated **stability**.
 Yet real performance and underlying capacity were **consistently declining**.
 
-Nothing broke.  
-Nothing recovered.  
+Nothing broke.
+Nothing recovered.
 The system simply continued — while becoming more fragile, more complex, and harder to change.
 
-This state persisted far longer than any existing model could explain.
+This state persisted far longer than existing models could explain.
 
-Conventional frameworks assumed:
-- Stability implies health  
-- Recovery implies restoration  
-- Absence of failure implies resilience  
+Conventional assumptions failed:
 
-All three assumptions are false.
+* Stability implies health
+* Recovery implies restoration
+* Absence of failure implies resilience
+
+All three are false.
 
 ---
 
@@ -35,14 +36,15 @@ All three assumptions are false.
 
 The breakthrough came from separating two processes that are normally treated as identical:
 
-- **ρ (restoration)** — removes damage and increases real capacity  
-- **κ (displacement)** — redistributes or delays damage without removing it  
+* **ρ (restoration)** — removes damage and increases real capacity
+* **κ (displacement)** — redistributes or delays damage without removing it
 
 Both reduce visible stress.
-
 Only one restores the system.
 
-This distinction does not refine existing models — it invalidates them.
+This distinction does not refine existing models.
+
+> It invalidates them.
 
 ---
 
@@ -50,99 +52,100 @@ This distinction does not refine existing models — it invalidates them.
 
 The behavior of any constrained system with memory can be expressed as:
 
-$$
+[
 \frac{d\Theta}{dt} = \rho - \sigma_{\text{eff}}
-$$
+]
 
 Where:
 
-- **Θ** — real remaining capacity (true system health)  
-- **ρ** — genuine healing (bounded, accumulative, irreversible in benefit)  
-- **κ** — displacement / masking (finite, depleting, non-healing)  
-- **σ** — stress amplification (nonlinear and system-destabilizing)  
-The Central Result
+* **Θ** — real remaining capacity
+* **ρ** — genuine healing (bounded, accumulative)
+* **κ** — displacement / masking (finite, depleting)
+* **σ** — stress amplification (nonlinear)
 
-A system can remain fully functional and appear stable
-while its real capacity Θ is steadily declining.
+---
 
-This is not a rare edge case.
+## The Central Result
+
+> A system can remain fully functional and appear stable
+> while its real capacity Θ is steadily declining.
+
+This is not an edge case.
 
 It is the default behavior of systems beyond the elastic regime.
 
-The Mechanism
+---
+
+## The Mechanism
 
 κ is the hidden variable.
 
 It does not remove stress — it relocates it across time, structure, or visibility.
 
-Examples appear everywhere:
+Examples appear consistently:
 
-Retry loops instead of fixing root causes
-
-Liquidity injections instead of resolving insolvency
-
-Temporary patches that become permanent architecture
-
-Behavioral compensation in individuals and organizations
+* Retry loops instead of fixing root causes
+* Liquidity injections instead of resolving insolvency
+* Temporary patches that become permanent architecture
+* Behavioral compensation in individuals and organizations
 
 Each κ action reduces immediate friction while consuming future capacity.
 
 As κ accumulates:
 
-Observability decreases
-
-Structural debt increases
-
-True system state diverges from reported state
+* Observability decreases
+* Structural debt increases
+* True system state diverges from reported state
 
 The system appears stable because the damage is being hidden.
 
-Regime Transitions
+---
 
-The framework identifies three mechanical regimes:
+## Regime Transitions
 
-Elastic — ρ dominates → capacity grows, recovery is real
+Three mechanical regimes emerge:
 
-Plastic — κ dominates → stability is borrowed, Θ declines
+* **Elastic** — ρ dominates → capacity grows
+* **Plastic** — κ dominates → stability is borrowed, Θ declines
+* **Residual** — κ exhausted → σ dominates, failure is embedded
 
-Residual — κ exhausted → σ dominates, failure is embedded
+Transitions are structural and irreversible.
 
-Transitions are not cyclical.
-They are structural and irreversible.
+---
 
-Scope
+## Scope
 
 This structure is domain-independent.
 
-It appears consistently across:
+It appears across:
 
-Financial systems
-
-Software architectures
-
-AI systems
-
-Organizations
-
-Biological processes
+* Financial systems
+* Software architectures
+* AI systems
+* Organizations
+* Biological processes
 
 Surface behavior differs.
 
 Underlying mechanics do not.
 
-Implication
+---
+
+## Implication
 
 Failure in complex systems is rarely sudden.
 
-It is delayed, often for extended periods, by continuous masking.
+It is delayed—often for extended periods—by continuous masking.
 
-The period of maximum apparent stability
-often corresponds to the point of minimum real capacity.
+> The period of maximum apparent stability
+> often corresponds to the point of minimum real capacity.
 
 The calm before collapse is not strength.
 
 It is accumulated κ.
 
-Final Statement
+---
+
+## Final Statement
 
 ρ heals · κ hides · σ kills

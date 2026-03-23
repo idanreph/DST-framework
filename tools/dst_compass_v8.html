@@ -1,0 +1,2279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DST Compass — Diagnostic Engine v5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#0f0e0b; --paper:#f5f0e8; --aged:#e8e0cc;
+  --gold:#a07830; --deep-gold:#6b4f1a; --red:#8b1a1a;
+  --mid:#5a5040; --light:#8a7e6e; --rule:#c8b898;
+  --box:#faf6ee; --dark1:#1c1810; --dark2:#2a2218;
+  --green:#2a5a2a; --amber:#c8780a; --blue:#2a4a6a;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--ink); color:var(--paper);
+  font-family:'Crimson Pro',Georgia,serif;
+  font-size:18px; line-height:1.7; min-height:100vh;
+}
+body::before{
+  content:''; position:fixed; inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:1000; opacity:0.5;
+}
+
+/* HEADER */
+.header{
+  text-align:center; padding:52px 24px 32px;
+  border-bottom:1px solid rgba(160,120,48,0.25); position:relative;
+}
+.header::after{
+  content:''; position:absolute; bottom:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+}
+.header-label{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.4em; color:var(--gold); text-transform:uppercase;
+  margin-bottom:14px; display:block;
+}
+.header h1{
+  font-family:'IM Fell English',serif;
+  font-size:clamp(36px,6vw,66px); line-height:1.05;
+  color:var(--paper); margin-bottom:8px;
+}
+.header-sub{
+  font-family:'Crimson Pro',serif; font-style:italic;
+  font-size:18px; color:var(--gold); margin-bottom:18px;
+}
+.header-desc{
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  letter-spacing:0.18em; color:rgba(160,120,48,0.55);
+}
+
+/* STAGE TABS */
+.stage-wrap{
+  max-width:860px; margin:0 auto;
+  display:flex; border-bottom:1px solid rgba(160,120,48,0.2);
+}
+.stage-tab{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.15em; text-transform:uppercase;
+  color:var(--mid); padding:14px 22px;
+  background:none; border:none;
+  border-bottom:2px solid transparent;
+  cursor:pointer; transition:all 0.2s; white-space:nowrap;
+}
+.stage-tab.active{color:var(--gold); border-bottom-color:var(--gold);}
+.stage-tab.done{color:var(--light);}
+.stage-tab:disabled{opacity:0.3; cursor:not-allowed;}
+
+/* CONTAINER */
+.container{max-width:860px; margin:0 auto; padding:44px 24px 100px;}
+.stage-panel{display:none;}
+.stage-panel.active{display:block;}
+
+/* LABELS */
+.sec-label{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.35em; color:var(--gold); text-transform:uppercase;
+  display:block; margin-bottom:8px; margin-top:48px;
+}
+.sec-label:first-child{margin-top:0;}
+.sec-title{
+  font-family:'IM Fell English',serif; font-size:26px;
+  color:var(--paper); margin-bottom:4px;
+}
+.sec-rule{width:50px; height:2px; background:var(--gold); margin:12px 0 24px;}
+.sec-body{color:rgba(245,240,232,0.65); font-size:16px; margin-bottom:24px;}
+
+/* QUESTION CARD */
+.q-card{
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(160,120,48,0.2);
+  border-left:3px solid var(--gold);
+  padding:18px 22px; margin-bottom:14px; transition:all 0.2s;
+}
+.q-card:focus-within{
+  border-color:rgba(160,120,48,0.5);
+  background:rgba(255,255,255,0.05);
+}
+.q-card.special{
+  border-left-color:var(--red);
+  background:rgba(139,26,26,0.08);
+}
+.q-card.required-field{
+  border-left-color:var(--amber);
+}
+.q-num{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.25em; color:var(--gold);
+  text-transform:uppercase; display:block; margin-bottom:3px;
+}
+.q-required{color:var(--amber);}
+.q-card.special .q-num{color:var(--red);}
+.q-title{
+  font-family:'Crimson Pro',serif; font-weight:600;
+  font-size:16px; color:var(--paper); margin-bottom:4px;
+}
+.q-hint{
+  font-family:'Crimson Pro',serif; font-style:italic;
+  font-size:14px; color:var(--light); margin-bottom:10px;
+}
+.q-hint.warn{color:rgba(220,80,80,0.85);}
+.q-card textarea{
+  width:100%; background:rgba(255,255,255,0.04);
+  border:1px solid rgba(160,120,48,0.15);
+  color:var(--paper); font-family:'Crimson Pro',serif;
+  font-size:16px; line-height:1.6; padding:10px 12px;
+  resize:vertical; min-height:60px; transition:border-color 0.2s;
+}
+.q-card textarea:focus{outline:none; border-color:rgba(160,120,48,0.4);}
+.q-card textarea::placeholder{color:rgba(160,120,48,0.28);}
+
+/* BUTTONS */
+.btn-primary{
+  width:100%; margin-top:28px;
+  background:linear-gradient(135deg,var(--deep-gold),var(--gold));
+  color:var(--ink); font-family:'JetBrains Mono',monospace;
+  font-size:12px; letter-spacing:0.2em; text-transform:uppercase;
+  font-weight:500; padding:18px 24px; border:none; cursor:pointer;
+  transition:all 0.2s;
+}
+.btn-primary:hover{filter:brightness(1.1); transform:translateY(-1px);}
+.btn-primary:disabled{opacity:0.4; cursor:not-allowed; transform:none;}
+.btn-secondary{
+  width:100%; margin-top:14px;
+  background:transparent; color:var(--gold);
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  letter-spacing:0.18em; text-transform:uppercase;
+  padding:14px 24px; border:1px solid rgba(160,120,48,0.4); cursor:pointer;
+  transition:all 0.2s;
+}
+.btn-secondary:hover{border-color:var(--gold); background:rgba(160,120,48,0.08);}
+.btn-red{
+  width:100%; margin-top:14px;
+  background:rgba(139,26,26,0.12); color:rgba(245,200,200,0.9);
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  letter-spacing:0.18em; text-transform:uppercase;
+  padding:14px 24px; border:1px solid rgba(139,26,26,0.35); cursor:pointer;
+  transition:all 0.2s;
+}
+.btn-red:hover{border-color:var(--red); background:rgba(139,26,26,0.22);}
+
+/* ═══ STATE DISPLAY (TOP OF OUTPUT) ═══ */
+.state-display{
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:2px; margin-bottom:28px;
+  animation:fadeUp 0.3s ease both;
+}
+.state-main{
+  padding:24px 28px;
+  background:var(--dark1);
+  border:1px solid rgba(160,120,48,0.3);
+  border-left:4px solid var(--gold);
+}
+.state-label-small{
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.3em; color:var(--light); text-transform:uppercase;
+  display:block; margin-bottom:6px;
+}
+.state-value{
+  font-family:'IM Fell English',serif;
+  font-size:28px; line-height:1.1; color:var(--paper);
+}
+.state-value.elastic{color:#6aaa6a;}
+.state-value.plastic{color:var(--gold);}
+.state-value.late-plastic{color:var(--amber);}
+.state-value.residual{color:#cc6666;}
+.state-sub{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  color:var(--light); margin-top:4px; display:block;
+}
+.confidence-box{
+  padding:24px 28px;
+  background:var(--dark1);
+  border:1px solid rgba(160,120,48,0.3);
+  display:flex; flex-direction:column; justify-content:center;
+}
+.conf-label{
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.3em; color:var(--light); text-transform:uppercase;
+  display:block; margin-bottom:8px;
+}
+.conf-value{
+  font-family:'JetBrains Mono',monospace; font-size:20px;
+  font-weight:500; letter-spacing:0.1em;
+}
+.conf-low{color:var(--red);}
+.conf-med{color:var(--amber);}
+.conf-high{color:#6aaa6a;}
+.conf-bar{
+  height:4px; background:rgba(255,255,255,0.08);
+  margin-top:8px; overflow:hidden;
+}
+.conf-fill{height:100%; transition:width 0.8s ease;}
+.conf-note{
+  font-family:'Crimson Pro',serif; font-style:italic;
+  font-size:13px; color:var(--light); margin-top:6px; display:block;
+}
+
+/* CONTRADICTION BANNER */
+.contradiction-banner{
+  background:rgba(139,26,26,0.15);
+  border:1px solid rgba(139,26,26,0.5);
+  border-left:4px solid var(--red);
+  padding:16px 20px; margin-bottom:20px;
+  animation:fadeUp 0.35s ease both;
+}
+.contra-label{
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.3em; color:var(--red); text-transform:uppercase;
+  display:block; margin-bottom:8px;
+}
+.contra-item{
+  font-family:'Crimson Pro',serif; font-size:16px;
+  color:rgba(245,200,200,0.9); padding:4px 0;
+  border-bottom:1px solid rgba(139,26,26,0.2);
+}
+.contra-item:last-child{border-bottom:none;}
+.contra-item::before{content:'⚠ '; color:var(--red);}
+
+/* OUT CARDS */
+.out-section{margin-bottom:18px; animation:fadeUp 0.4s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+
+.out-card{border:1px solid rgba(160,120,48,0.2); padding:20px 24px;}
+.out-card.dark{background:var(--dark1); border-left:4px solid var(--gold);}
+.out-card.gold{background:rgba(160,120,48,0.06); border-left:4px solid var(--gold);}
+.out-card.red{background:rgba(139,26,26,0.07); border-left:4px solid var(--red);}
+.out-card.green{background:rgba(42,90,42,0.07); border-left:4px solid var(--green);}
+.out-card.amber{background:rgba(200,120,10,0.07); border-left:4px solid var(--amber);}
+
+.out-label{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.28em; color:var(--gold); text-transform:uppercase;
+  margin-bottom:10px; display:block;
+}
+.out-label.red-l{color:var(--red);}
+.out-label.green-l{color:var(--green);}
+.out-label.amber-l{color:var(--amber);}
+
+.out-title{
+  font-family:'IM Fell English',serif; font-size:19px;
+  color:var(--paper); margin-bottom:8px; font-style:italic;
+}
+.out-body{
+  font-family:'Crimson Pro',serif; font-size:16px;
+  color:rgba(245,240,232,0.82); line-height:1.7;
+}
+
+/* METERS */
+.meter-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:14px 0;}
+.meter-label{
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.18em; color:var(--light); text-transform:uppercase;
+  margin-bottom:5px; display:block;
+}
+.meter-bar{height:5px; background:rgba(255,255,255,0.07); overflow:hidden;}
+.meter-fill{height:100%; transition:width 0.9s ease; width:0%;}
+.m-red{background:var(--red);}
+.m-green{background:var(--green);}
+.m-gold{background:var(--gold);}
+.m-amber{background:var(--amber);}
+.meter-val{
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  color:var(--gold); margin-top:3px; display:block;
+}
+
+/* GAPS */
+.gap-list{list-style:none; margin-top:10px;}
+.gap-list li{
+  font-family:'Crimson Pro',serif; font-size:16px;
+  color:rgba(245,240,232,0.8); padding:7px 0;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  display:flex; gap:10px; align-items:flex-start;
+}
+.gap-list li:last-child{border:none;}
+.gap-icon{font-size:12px; flex-shrink:0; margin-top:4px;}
+.gap-ok .gap-icon{color:var(--green);}
+.gap-bad .gap-icon{color:var(--red);}
+
+/* CHALLENGE */
+.challenge-q{
+  font-family:'IM Fell English',serif; font-style:italic;
+  font-size:20px; color:rgba(245,240,232,0.92); line-height:1.5;
+  margin-bottom:10px;
+}
+
+/* REPORT */
+.report-text{
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  line-height:1.85; color:rgba(160,120,48,0.82);
+  white-space:pre-wrap; word-break:break-word;
+}
+
+/* PREMIUM */
+.premium-gate{
+  text-align:center; padding:32px;
+  background:var(--dark1);
+  border:1px solid rgba(160,120,48,0.3);
+}
+.premium-gate h3{
+  font-family:'IM Fell English',serif; font-size:22px;
+  color:var(--paper); margin-bottom:8px;
+}
+.premium-gate p{font-size:15px; color:var(--light); margin-bottom:18px;}
+.premium-items{text-align:left; margin:0 auto 20px; max-width:380px;}
+.premium-items li{
+  font-size:15px; color:rgba(245,240,232,0.72);
+  padding:3px 0; list-style:none;
+}
+.premium-items li::before{content:'◆ '; color:var(--gold); font-size:10px;}
+.btn-unlock{
+  background:linear-gradient(135deg,var(--deep-gold),var(--gold));
+  color:var(--ink); font-family:'JetBrains Mono',monospace;
+  font-size:11px; letter-spacing:0.2em; text-transform:uppercase;
+  font-weight:500; padding:13px 30px; border:none; cursor:pointer;
+  transition:all 0.2s;
+}
+.btn-unlock:hover{filter:brightness(1.1); transform:translateY(-1px);}
+
+/* HASH */
+.hash-box{
+  background:rgba(0,0,0,0.3); border:1px solid rgba(160,120,48,0.2);
+  padding:16px 20px; margin-top:16px;
+}
+.hash-label{
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.3em; color:var(--light); text-transform:uppercase;
+  margin-bottom:5px; display:block;
+}
+.hash-val{
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  color:rgba(160,120,48,0.7); word-break:break-all; line-height:1.6;
+}
+
+/* ERROR */
+.error-box{
+  background:rgba(139,26,26,0.15); border:1px solid rgba(139,26,26,0.45);
+  border-left:4px solid var(--red); padding:16px 20px; margin-bottom:20px;
+  font-family:'Crimson Pro',serif; font-size:16px;
+  color:rgba(245,200,200,0.9); display:none;
+}
+.error-box.show{display:block;}
+
+/* LOADING */
+.loading{display:none; text-align:center; padding:36px;}
+.loading.active{display:block;}
+.loading-text{
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  letter-spacing:0.2em; color:var(--gold); text-transform:uppercase;
+  animation:pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:0.35;}50%{opacity:1;}}
+.loading-dots::after{
+  content:''; animation:dots 1.4s steps(4,end) infinite;
+}
+@keyframes dots{0%{content:'';}25%{content:'.';}50%{content:'..';}75%{content:'...';}100%{content:'';}}
+
+/* AUTO CARDS (stage 2) */
+.auto-card{
+  background:rgba(160,120,48,0.05);
+  border:1px solid rgba(160,120,48,0.2);
+  border-left:3px solid var(--gold);
+  padding:14px 20px; margin-bottom:12px;
+}
+.auto-tag{
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.2em; color:var(--amber); text-transform:uppercase;
+  background:rgba(160,120,48,0.12); padding:2px 7px;
+  display:inline-block; margin-bottom:6px;
+}
+.auto-value{
+  font-family:'Crimson Pro',serif; font-size:16px;
+  color:rgba(245,240,232,0.82); font-style:italic;
+}
+
+/* SYSTEM STATUS STRIP */
+.system-status-strip{
+  width:100%; padding:12px 32px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px; letter-spacing:0.25em; text-transform:uppercase;
+  font-weight:500; display:none; margin-bottom:2px;
+  border-left:4px solid;
+}
+.status-critical{
+  background:rgba(139,26,26,0.2); color:rgba(245,180,180,0.95);
+  border-color:var(--red);
+}
+.status-borrowed{
+  background:rgba(200,120,10,0.12); color:rgba(245,210,150,0.9);
+  border-color:var(--amber);
+}
+.status-ok{
+  background:rgba(42,90,42,0.12); color:rgba(160,220,160,0.9);
+  border-color:var(--green);
+}
+
+/* DST RISK SCORE */
+.risk-score-block{
+  background:var(--ink);
+  border:1px solid rgba(160,120,48,0.35);
+  padding:28px 32px; margin-bottom:4px;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:20px; flex-wrap:wrap;
+  animation:fadeUp 0.25s ease both;
+}
+.score-main{ display:flex; flex-direction:column; }
+.score-label{
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.35em; color:var(--light); text-transform:uppercase;
+  margin-bottom:6px;
+}
+.score-number{
+  font-family:'IM Fell English',serif;
+  font-size:clamp(52px,8vw,80px); line-height:1;
+  font-weight:400; letter-spacing:-0.02em;
+}
+.score-number.low   { color:#6aaa6a; }
+.score-number.mid   { color:var(--gold); }
+.score-number.high  { color:var(--amber); }
+.score-number.crit  { color:#cc6666; }
+.score-denom{
+  font-family:'JetBrains Mono',monospace; font-size:16px;
+  color:var(--light); margin-left:4px;
+}
+.holy-shit-line{
+  font-family:'IM Fell English',serif; font-style:italic;
+  font-size:clamp(15px,2.2vw,19px); line-height:1.6;
+  color:rgba(245,240,232,0.72); letter-spacing:0.01em;
+  margin-top:14px; display:block; width:100%;
+  grid-column: 1 / -1;
+}
+.score-bar-wrap{ flex:1; min-width:160px; }
+.score-bar-label{
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.2em; color:var(--light); text-transform:uppercase;
+  margin-bottom:8px; display:block;
+}
+.score-bar-track{
+  height:8px; background:rgba(255,255,255,0.06); position:relative;
+}
+.score-bar-fill{
+  height:100%; transition:width 1s ease; width:0%;
+  position:relative;
+}
+.score-bar-fill::after{
+  content:''; position:absolute; right:0; top:-3px;
+  width:2px; height:14px; background:inherit; opacity:0.8;
+}
+.score-share{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.15em; color:rgba(160,120,48,0.5);
+  text-transform:uppercase; margin-top:10px; display:block;
+  cursor:pointer; transition:color 0.2s;
+}
+.score-share:hover{ color:var(--gold); }
+.score-breakdown{
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:8px 20px; margin-top:14px; padding-top:14px;
+  border-top:1px solid rgba(160,120,48,0.2);
+}
+.sb-item{ display:flex; flex-direction:column; gap:3px; }
+.sb-label{
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+  letter-spacing:0.2em; color:var(--light); text-transform:uppercase;
+}
+.sb-bar{ height:3px; background:rgba(255,255,255,0.07); }
+.sb-fill{ height:100%; transition:width 0.9s ease; }
+.sb-val{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  color:var(--gold);
+}
+.final-regime-label{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.15em; text-transform:uppercase;
+  margin-top:10px; display:block; line-height:1.6;
+}
+.obs-gap-tag{
+  color:var(--red); font-size:9px;
+}
+
+/* DECISION ENGINE */
+.decision-block{
+  background:rgba(139,26,26,0.18);
+  border:1px solid rgba(139,26,26,0.5);
+  border-left:6px solid var(--red);
+  padding:22px 26px; margin-bottom:4px;
+  animation:fadeUp 0.3s ease both;
+}
+.decision-label{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.35em; color:var(--red); text-transform:uppercase;
+  margin-bottom:12px; display:flex; align-items:center; gap:8px;
+}
+.decision-label::before{
+  content:'⚡'; font-size:14px;
+}
+.decision-title{
+  font-family:'IM Fell English',serif; font-size:20px;
+  color:rgba(245,220,220,0.95); margin-bottom:12px; font-style:italic;
+}
+.decision-items{ list-style:none; }
+.decision-items li{
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  color:rgba(245,200,200,0.85); padding:6px 0;
+  border-bottom:1px solid rgba(139,26,26,0.2);
+  letter-spacing:0.05em; line-height:1.5;
+}
+.decision-items li:last-child{ border:none; }
+.decision-items li::before{ content:'→ '; color:var(--red); }
+
+/* κ DOMINANCE */
+.kappa-block{
+  background:rgba(200,120,10,0.08);
+  border:1px solid rgba(200,120,10,0.35);
+  border-left:4px solid var(--amber);
+  padding:16px 22px; margin-bottom:4px;
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:12px;
+  animation:fadeUp 0.35s ease both;
+}
+.kappa-label{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.3em; color:var(--amber); text-transform:uppercase;
+}
+.kappa-level{
+  font-family:'JetBrains Mono',monospace; font-size:14px;
+  font-weight:500; letter-spacing:0.1em;
+}
+.kappa-low  { color:#6aaa6a; }
+.kappa-med  { color:var(--gold); }
+.kappa-high { color:var(--amber); }
+.kappa-crit { color:#cc6666; animation:blink 1.2s ease-in-out infinite; }
+@keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+.kappa-desc{
+  font-family:'Crimson Pro',serif; font-style:italic;
+  font-size:15px; color:rgba(245,200,150,0.8); width:100%;
+}
+
+/* FAILURE PATH */
+.failure-block{
+  border:1px solid rgba(139,26,26,0.4);
+  margin-bottom:4px; overflow:hidden;
+  animation:fadeUp 0.4s ease both;
+}
+.failure-header{
+  background:rgba(139,26,26,0.2);
+  padding:14px 22px; display:flex; align-items:center; gap:10px;
+}
+.failure-header-label{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.3em; color:var(--red); text-transform:uppercase;
+  flex:1;
+}
+.failure-header-sub{
+  font-family:'Crimson Pro',serif; font-style:italic;
+  font-size:14px; color:rgba(245,200,200,0.7);
+}
+.failure-step{
+  padding:14px 22px;
+  border-bottom:1px solid rgba(139,26,26,0.2);
+  display:flex; align-items:flex-start; gap:14px;
+}
+.failure-step:last-child{ border:none; }
+.failure-step-num{
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  color:var(--red); flex-shrink:0; padding-top:2px;
+  letter-spacing:0.1em;
+}
+.failure-step-content{
+  font-family:'Crimson Pro',serif; font-size:16px;
+  color:rgba(245,240,232,0.85); line-height:1.6;
+}
+.failure-step.locked{
+  background:rgba(0,0,0,0.2); position:relative;
+}
+.failure-step.locked .failure-step-content{
+  color:rgba(245,240,232,0.3); filter:blur(3px); user-select:none;
+}
+.lock-overlay{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(15,14,11,0.6);
+}
+.lock-badge{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.2em; color:rgba(160,120,48,0.7);
+  text-transform:uppercase; border:1px solid rgba(160,120,48,0.3);
+  padding:4px 12px;
+}
+
+/* PREMIUM GATE V6 */
+.premium-v6{
+  background:var(--dark1);
+  border:1px solid rgba(160,120,48,0.4);
+  padding:28px 32px; text-align:center;
+  animation:fadeUp 0.5s ease both;
+}
+.premium-v6-title{
+  font-family:'IM Fell English',serif; font-size:24px;
+  color:var(--paper); margin-bottom:8px;
+}
+.premium-v6-sub{
+  font-family:'Crimson Pro',serif; font-style:italic;
+  font-size:16px; color:var(--light); margin-bottom:20px;
+}
+.premium-v6-list{
+  list-style:none; margin:0 auto 24px; max-width:360px; text-align:left;
+}
+.premium-v6-list li{
+  font-family:'Crimson Pro',serif; font-size:16px;
+  color:rgba(245,240,232,0.8); padding:5px 0;
+  border-bottom:1px solid rgba(160,120,48,0.12);
+}
+.premium-v6-list li::before{ content:'◆ '; color:var(--gold); font-size:10px; }
+.premium-v6-list li:last-child{ border:none; }
+.premium-v6-price{
+  font-family:'JetBrains Mono',monospace; font-size:28px;
+  color:var(--gold); letter-spacing:0.05em; margin-bottom:6px;
+  display:block;
+}
+.premium-v6-price-sub{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.2em; color:var(--light); text-transform:uppercase;
+  margin-bottom:20px; display:block;
+}
+.btn-pay{
+  background:linear-gradient(135deg,var(--deep-gold),var(--gold));
+  color:var(--ink); font-family:'JetBrains Mono',monospace;
+  font-size:12px; letter-spacing:0.2em; text-transform:uppercase;
+  font-weight:500; padding:16px 40px; border:none; cursor:pointer;
+  transition:all 0.2s; display:inline-block;
+}
+.btn-pay:hover{ filter:brightness(1.12); transform:translateY(-1px); }
+.xrp-note{
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.15em; color:rgba(160,120,48,0.45);
+  text-transform:uppercase; margin-top:12px; display:block;
+}
+
+/* DIVIDERS */
+.divider{border:none; border-top:1px solid rgba(160,120,48,0.18); margin:28px 0;}
+.divider-gold{border:none; border-top:1px solid var(--gold); margin:28px 0;}
+
+/* FOOTER */
+.footer{
+  text-align:center; padding:28px;
+  border-top:1px solid rgba(160,120,48,0.18);
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  letter-spacing:0.18em; color:rgba(160,120,48,0.38);
+}
+
+@media(max-width:600px){
+  .state-display{grid-template-columns:1fr;}
+  .meter-grid{grid-template-columns:1fr;}
+  .container{padding:28px 16px 80px;}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <span class="header-label">Diagnostic Engine · v8</span>
+  <h1>DST Compass</h1>
+  <p class="header-sub">Declining Stress Threshold</p>
+  <span class="header-desc">Is your system healing — or just hiding?</span>
+</div>
+
+<!-- STAGE TABS -->
+<div class="stage-wrap">
+  <button class="stage-tab active" id="tab1" onclick="switchTab(1)">① 15Q Diagnostic</button>
+  <button class="stage-tab" id="tab2" onclick="switchTab(2)" disabled>② Opportunity</button>
+  <button class="stage-tab" id="tab3" onclick="switchTab(3)" disabled>③ Report & Hash</button>
+</div>
+
+<!-- ═══ STAGE 1 ═══ -->
+<div class="container">
+<div class="stage-panel active" id="panel1">
+
+  <span class="sec-label">Stage 1 of 3</span>
+  <h2 class="sec-title">System Diagnostic</h2>
+  <div class="sec-rule"></div>
+  <p class="sec-body">Answer all questions about your system. Q4 (Θ) and Q8 (κ) are required — the diagnosis cannot run without them. The more specific your answers, the sharper the output.</p>
+
+  <div id="error-box" class="error-box"></div>
+
+  <!-- Q1 -->
+  <div class="q-card">
+    <span class="q-num">Q1 · System Boundary</span>
+    <div class="q-title">What exactly is the system?</div>
+    <div class="q-hint">Name it precisely. A vague boundary produces a vague diagnosis.</div>
+    <textarea id="q1" placeholder="The system is ______ operating within ______ under ______ constraints." rows="2"></textarea>
+  </div>
+
+  <!-- Q2 -->
+  <div class="q-card">
+    <span class="q-num">Q2 · Failure Definition</span>
+    <div class="q-title">What does failure actually mean here?</div>
+    <div class="q-hint">Concrete and real. Not "things get worse" — what specifically breaks?</div>
+    <textarea id="q2" placeholder="This system fails when ______ becomes unacceptable or falls below minimum viability." rows="2"></textarea>
+  </div>
+
+  <!-- Q3 -->
+  <div class="q-card">
+    <span class="q-num">Q3 · Regime</span>
+    <div class="q-title">What regime is the system in?</div>
+    <div class="q-hint">Elastic = real recovery. Plastic = masking active. Residual = delayed failure.</div>
+    <textarea id="q3" placeholder="This system is elastic / plastic / residual because ______." rows="2"></textarea>
+  </div>
+
+  <!-- Q4 REQUIRED -->
+  <div class="q-card required-field">
+    <span class="q-num q-required">Q4 · Θ — Required ★</span>
+    <div class="q-title">How much real buffer remains?</div>
+    <div class="q-hint">Not "does it work?" — how much genuine capacity to absorb stress before regime change?</div>
+    <textarea id="q4" placeholder="The system's remaining capacity to absorb stress without regime change is ______." rows="2"></textarea>
+  </div>
+
+  <!-- Q5 -->
+  <div class="q-card">
+    <span class="q-num">Q5 · D — Irreversible Damage</span>
+    <div class="q-title">What damage is accumulating underneath?</div>
+    <div class="q-hint">Slow, structural, hard to reverse. Even when everything still seems to work.</div>
+    <textarea id="q5" placeholder="Even if the system appears functional, ______ is accumulating and cannot be reversed quickly." rows="2"></textarea>
+  </div>
+
+  <!-- Q6 -->
+  <div class="q-card">
+    <span class="q-num">Q6 · σ — Stress Engine</span>
+    <div class="q-title">What is the self-reinforcing killer loop?</div>
+    <div class="q-hint">Not the initial pressure — the feedback that makes stress nonlinear and self-amplifying. Different from ρ (restoration) in Q7.</div>
+    <textarea id="q6" placeholder="Stress becomes nonlinear because ______ reinforces itself." rows="2"></textarea>
+  </div>
+
+  <!-- Q7 -->
+  <div class="q-card">
+    <span class="q-num">Q7 · ρ — True Restoration</span>
+    <div class="q-title">What actually rebuilds future tolerance?</div>
+    <div class="q-hint">Not appearance, not symptom suppression. What genuinely increases Θ?</div>
+    <textarea id="q7" placeholder="The system can genuinely rebuild future tolerance only by ______." rows="2"></textarea>
+  </div>
+
+  <!-- Q8 REQUIRED -->
+  <div class="q-card required-field">
+    <span class="q-num q-required">Q8 · κ — Required ★</span>
+    <div class="q-title">Where is stress being hidden or exported?</div>
+    <div class="q-hint">If you cannot name this, you don't yet understand why the system still appears alive.</div>
+    <textarea id="q8" placeholder="The system remains functional because stress is being displaced into ______." rows="2"></textarea>
+  </div>
+
+  <!-- Q9 -->
+  <div class="q-card">
+    <span class="q-num">Q9 · κmax — Saturation Point</span>
+    <div class="q-title">When does the displacement channel run out?</div>
+    <div class="q-hint">The moment the masking stops working.</div>
+    <textarea id="q9" placeholder="The masking or displacement channel saturates when ______." rows="2"></textarea>
+  </div>
+
+  <!-- Q10 -->
+  <div class="q-card">
+    <span class="q-num">Q10 · Lying Metric</span>
+    <div class="q-title">Which metric looks fine while the system worsens?</div>
+    <div class="q-hint">The false reassurance signal. The number everyone watches that tells the wrong story.</div>
+    <textarea id="q10" placeholder="The metric that appears healthy while the system worsens underneath is ______." rows="2"></textarea>
+  </div>
+
+  <!-- Q11 -->
+  <div class="q-card">
+    <span class="q-num">Q11 · Earliest Θ Proxy</span>
+    <div class="q-title">What is the earliest real warning signal?</div>
+    <div class="q-hint">Moves before conventional indicators. The canary before the collapse.</div>
+    <textarea id="q11" placeholder="The earliest measurable proxy for declining true tolerance is ______." rows="2"></textarea>
+  </div>
+
+  <!-- Q12 -->
+  <div class="q-card">
+    <span class="q-num">Q12 · Earliest κ-Saturation Proxy</span>
+    <div class="q-title">What is the first sign displacement is failing?</div>
+    <textarea id="q12" placeholder="The earliest measurable sign that displacement is failing is ______." rows="2"></textarea>
+  </div>
+
+  <!-- Q13 -->
+  <div class="q-card">
+    <span class="q-num">Q13 · Transition Boundary</span>
+    <div class="q-title">What condition flips the system into a worse regime?</div>
+    <textarea id="q13" placeholder="The system crosses from apparent stability into terminal dynamics when ______ crosses ______." rows="2"></textarea>
+  </div>
+
+  <!-- Q13.5 SPECIAL -->
+  <div class="q-card special">
+    <span class="q-num">Q13.5 · κ-Cap Check — Critical</span>
+    <div class="q-title">What displacement must be reduced before the rail works?</div>
+    <div class="q-hint warn">⚠ Building restoration while displacement is fully active is usually ineffective. The system routes back into masking. Name what must be capped first.</div>
+    <textarea id="q135" placeholder="The κ channel that must be reduced or capped before the rail can work is ______." rows="2"></textarea>
+  </div>
+
+  <!-- Q14 -->
+  <div class="q-card">
+    <span class="q-num">Q14 · Correct Rail</span>
+    <div class="q-title">What is the right intervention?</div>
+    <div class="q-hint">Buffer · Export · Pulse · Reset · Truth — most bad strategies are "more κ" pretending to be a rail.</div>
+    <textarea id="q14" placeholder="The correct rail is ______ because ______." rows="2"></textarea>
+  </div>
+
+  <!-- Q15 -->
+  <div class="q-card">
+    <span class="q-num">Q15 · Payer & Sink Map</span>
+    <div class="q-title">Who pays when this breaks, and who absorbs it now?</div>
+    <textarea id="q15" placeholder="When this system fails, ______ pays. Right now, ______ is functioning as the sink." rows="2"></textarea>
+  </div>
+
+  <button class="btn-primary" id="btn-analyse" onclick="runDiagnosis()">Run DST Diagnostic →</button>
+
+  <div class="loading" id="loading1">
+    <div class="loading-text">Running DST engine<span class="loading-dots"></span></div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div id="stage1-output" style="display:none; margin-top:44px;">
+    <hr class="divider-gold">
+
+    <!-- SYSTEM STATUS STRIP -->
+    <div id="system-status-strip" class="system-status-strip"></div>
+
+    <!-- 1. DST RISK SCORE + STATE + CONFIDENCE -->
+    <div id="score-block" class="risk-score-block">
+      <div class="score-main">
+        <span class="score-label">DST Risk Score</span>
+        <div>
+          <span class="score-number" id="score-number">—</span>
+          <span class="score-denom">/ 100</span>
+        </div>
+        <span class="score-share" onclick="shareScore()">↗ Screenshot &amp; Share</span>
+        <span class="score-share" onclick="copyScore()" style="margin-top:4px;">⊕ Copy Score</span>
+      </div>
+      <div class="score-bar-wrap">
+        <span class="score-bar-label">Fragility Level</span>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" id="score-bar-fill"></div>
+        </div>
+        <div id="state-display" style="margin-top:10px;"></div>
+        <span class="final-regime-label" id="final-regime-label"></span>
+        <div class="score-breakdown" id="score-breakdown">
+          <div class="sb-item">
+            <span class="sb-label">κ Pressure</span>
+            <div class="sb-bar"><div class="sb-fill" id="sb-kappa" style="background:var(--red);"></div></div>
+            <span class="sb-val" id="sbv-kappa">—</span>
+          </div>
+          <div class="sb-item">
+            <span class="sb-label">Θ Remaining</span>
+            <div class="sb-bar"><div class="sb-fill" id="sb-theta" style="background:var(--green);"></div></div>
+            <span class="sb-val" id="sbv-theta">—</span>
+          </div>
+          <div class="sb-item">
+            <span class="sb-label">D Accumulation</span>
+            <div class="sb-bar"><div class="sb-fill" id="sb-damage" style="background:var(--amber);"></div></div>
+            <span class="sb-val" id="sbv-damage">—</span>
+          </div>
+          <div class="sb-item">
+            <span class="sb-label">ρ Capacity</span>
+            <div class="sb-bar"><div class="sb-fill" id="sb-rho" style="background:var(--gold);"></div></div>
+            <span class="sb-val" id="sbv-rho">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="holy-shit-wrap" style="display:none; padding:0 32px 20px; background:var(--ink); border:1px solid rgba(160,120,48,0.35); border-top:none; margin-bottom:4px;">
+      <span class="holy-shit-line" id="holy-shit-line"></span>
+    </div>
+
+    <!-- 2. DECISION ENGINE -->
+    <div class="decision-block" id="decision-block">
+      <span class="decision-label">Immediate Action Required</span>
+      <div class="decision-title" id="decision-title"></div>
+      <ul class="decision-items" id="decision-items"></ul>
+    </div>
+
+    <!-- 3. FAILURE PATH (step 1 free, rest locked) -->
+    <div class="failure-block" id="failure-block">
+      <div class="failure-header">
+        <span class="failure-header-label">Failure Path (if κ stops working)</span>
+        <span class="failure-header-sub" id="failure-if"></span>
+      </div>
+      <div id="failure-steps"></div>
+    </div>
+
+    <!-- 4. κ DOMINANCE -->
+    <div class="kappa-block" id="kappa-block">
+      <span class="kappa-label">κ Dominance</span>
+      <span class="kappa-level" id="kappa-level"></span>
+      <span class="kappa-desc" id="kappa-desc"></span>
+    </div>
+
+    <!-- CONTRADICTIONS -->
+    <div id="contra-wrap" style="margin-top:4px;"></div>
+
+    <!-- 5. INSIGHT -->
+    <div class="out-section" style="margin-top:18px;">
+      <span class="out-label amber-l">Insight</span>
+      <div class="out-card amber">
+        <div class="out-title" id="insight-title"></div>
+        <div class="out-body" id="insight-body"></div>
+      </div>
+    </div>
+
+    <!-- GAPS -->
+    <div class="out-section">
+      <span class="out-label red-l">Gap Detection</span>
+      <div class="out-card red">
+        <div class="out-body" style="font-size:15px; color:var(--light); margin-bottom:10px;">
+          Structural gaps in this diagnostic:
+        </div>
+        <ul class="gap-list" id="gap-list"></ul>
+      </div>
+    </div>
+
+    <!-- SYSTEM CHALLENGE -->
+    <div class="out-section">
+      <span class="out-label">System Challenge</span>
+      <div class="out-card dark">
+        <div class="challenge-q" id="challenge-q"></div>
+        <div class="out-body" id="challenge-body"></div>
+      </div>
+    </div>
+
+    <!-- 6. PREMIUM GATE V6 — after the pain -->
+    <div id="premium-section" style="margin-top:4px;">
+      <div class="premium-v6" id="premium-gate">
+        <div class="premium-v6-title">You've seen the first step.</div>
+        <div class="premium-v6-sub">This is where most systems fail.<br>Unlock the full cascade — before it happens.</div>
+        <ul class="premium-v6-list">
+          <li>Full failure cascade — all 4 steps in your system's words</li>
+          <li>Action protocol — exactly what to do, in order</li>
+          <li>Time-to-collapse estimate — how long before κ saturates</li>
+        </ul>
+        <span class="premium-v6-price">$19</span>
+        <span class="premium-v6-price-sub">One diagnostic · No subscription</span>
+        <button class="btn-pay" onclick="handlePayment()">Unlock Now →</button>
+        <span class="xrp-note">Anchor this diagnosis permanently (XRPL) · Pay in XRP</span>
+      </div>
+      <div id="premium-content" style="display:none;"></div>
+    </div>
+
+    <!-- REPORT (below premium) -->
+    <div class="out-section" style="margin-top:18px;">
+      <span class="out-label green-l">Canonical DST Report</span>
+      <div class="out-card" style="background:rgba(0,0,0,0.28); border-left:4px solid var(--green);">
+        <pre class="report-text" id="report-text"></pre>
+      </div>
+    </div>
+
+    <!-- AI DEEP ANALYSIS -->
+    <button class="btn-red" onclick="runDeepAI()">🔬 Deep AI Analysis — Copy DST Prompt for Claude</button>
+    <div id="ai-wrap" style="display:none; margin-top:20px;">
+      <div id="ai-result" style="display:none;">
+        <div class="out-card dark" style="margin-top:0;">
+          <span class="out-label">Claude DST Analysis</span>
+          <div class="out-body" id="ai-text" style="white-space:pre-wrap; font-size:15px; line-height:1.8;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HASH -->
+    <div class="hash-box" style="margin-top:24px;">
+      <span class="hash-label">SHA-256 Diagnostic Hash — includes Score + Regime — XRPL Ready</span>
+      <div class="hash-val" id="hash-display">—</div>
+    </div>
+
+    <button class="btn-secondary" onclick="prepareStage2(); switchTab(2);" style="margin-top:28px;">
+      Continue to Opportunity Analysis →
+    </button>
+  </div>
+</div>
+
+<!-- ═══ STAGE 2 ═══ -->
+<div class="stage-panel" id="panel2">
+  <span class="sec-label">Stage 2 of 3</span>
+  <h2 class="sec-title">Opportunity Analysis</h2>
+  <div class="sec-rule"></div>
+  <p class="sec-body">Six insights auto-derived from your diagnostic. Answer two questions to complete the map.</p>
+
+  <span class="sec-label" style="margin-top:0;">Auto-Derived</span>
+
+  <div class="auto-card">
+    <span class="auto-tag">Auto · Pain Spend</span>
+    <div class="auto-value" id="auto-pain">—</div>
+  </div>
+  <div class="auto-card">
+    <span class="auto-tag">Auto · Failure Cost</span>
+    <div class="auto-value" id="auto-cost">—</div>
+  </div>
+  <div class="auto-card">
+    <span class="auto-tag">Auto · Ultimate Payer</span>
+    <div class="auto-value" id="auto-payer">—</div>
+  </div>
+  <div class="auto-card">
+    <span class="auto-tag">Auto · Hidden Variable</span>
+    <div class="auto-value" id="auto-hidden">—</div>
+  </div>
+  <div class="auto-card">
+    <span class="auto-tag">Auto · Better Signal</span>
+    <div class="auto-value" id="auto-signal">—</div>
+  </div>
+  <div class="auto-card">
+    <span class="auto-tag">Auto · Defensibility</span>
+    <div class="auto-value" id="auto-defense">—</div>
+  </div>
+
+  <hr class="divider">
+  <span class="sec-label" style="margin-top:0;">Your Input</span>
+
+  <div class="q-card">
+    <span class="q-num">1B · First Buyer</span>
+    <div class="q-title">Who feels this pain first and has real urgency?</div>
+    <textarea id="b-q3" placeholder="The first actor who feels this problem sharply is ______." rows="2"></textarea>
+  </div>
+  <div class="q-card">
+    <span class="q-num">1B · Sellable Output</span>
+    <div class="q-title">What can a buyer actually purchase?</div>
+    <textarea id="b-q9" placeholder="The thing a buyer can actually purchase is ______." rows="2"></textarea>
+  </div>
+
+  <button class="btn-primary" onclick="runStage2()">Generate Opportunity Report →</button>
+  <div class="loading" id="loading2">
+    <div class="loading-text">Building opportunity map<span class="loading-dots"></span></div>
+  </div>
+  <div id="stage2-output" style="display:none; margin-top:36px;">
+    <hr class="divider-gold">
+    <div class="out-section">
+      <span class="out-label green-l">Opportunity Output</span>
+      <div class="out-card green">
+        <pre class="report-text" id="opp-text"></pre>
+      </div>
+    </div>
+    <button class="btn-secondary" onclick="buildFinalReport(); switchTab(3);" style="margin-top:20px;">
+      Continue to Final Report →
+    </button>
+  </div>
+</div>
+
+<!-- ═══ STAGE 3 ═══ -->
+<div class="stage-panel" id="panel3">
+  <span class="sec-label">Stage 3 of 3</span>
+  <h2 class="sec-title">Final Report & Hash</h2>
+  <div class="sec-rule"></div>
+  <p class="sec-body">Complete DST diagnostic. SHA-256 hash is ready to anchor on XRPL.</p>
+
+  <div class="out-card dark" style="margin-bottom:20px;">
+    <span class="out-label">Complete DST Report</span>
+    <pre class="report-text" id="final-report"></pre>
+  </div>
+
+  <div class="hash-box">
+    <span class="hash-label">SHA-256 — Full Report Hash — XRPL Ready</span>
+    <div class="hash-val" id="final-hash"></div>
+  </div>
+
+  <button class="btn-secondary" onclick="copyText('final-report')" style="margin-top:20px;">Copy Full Report</button>
+  <button class="btn-secondary" onclick="copyText('final-hash')">Copy Hash for XRPL</button>
+
+  <div style="margin-top:36px; text-align:center; opacity:0.45;">
+    <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.22em; color:var(--gold);">
+      XRPL ANCHORING — COMING NEXT
+    </div>
+    <div style="font-family:'Crimson Pro',serif; font-size:14px; color:var(--light); margin-top:6px;">
+      Connect Xaman → anchor this hash permanently on the XRP Ledger
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="footer">
+  DST COMPASS · IDAN REPHIAH · 2026 · SSRN 6434119<br>
+  ρ heals. κ hides. σ kills.
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     DST ENGINE v5 — 14-LAYER ARCHITECTURE
+═══════════════════════════════════════════════════ -->
+<script>
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+const S = {
+  answers: {}, values: {}, semantic: {}, signals: 0,
+  structure: {}, regime: {}, contradictions: [],
+  confidence: '', gaps: [], insight: {}, challenge: {},
+  report: '', oppReport: '', hash: '', premiumDone: false,
+  claudeText: ''
+};
+
+// ── LAYER 0: SHA-256 ───────────────────────────────────────────────────────
+async function sha256(str) {
+  const buf = new TextEncoder().encode(str);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ── LAYER 1: COLLECT + VALIDATE ────────────────────────────────────────────
+function collectValues() {
+  return {
+    Q1:  document.getElementById('q1')?.value?.trim()   || '',
+    Q2:  document.getElementById('q2')?.value?.trim()   || '',
+    Q3:  document.getElementById('q3')?.value?.trim()   || '',
+    Q4:  document.getElementById('q4')?.value?.trim()   || '',
+    Q5:  document.getElementById('q5')?.value?.trim()   || '',
+    Q6:  document.getElementById('q6')?.value?.trim()   || '',
+    Q7:  document.getElementById('q7')?.value?.trim()   || '',
+    Q8:  document.getElementById('q8')?.value?.trim()   || '',
+    Q9:  document.getElementById('q9')?.value?.trim()   || '',
+    Q10: document.getElementById('q10')?.value?.trim()  || '',
+    Q11: document.getElementById('q11')?.value?.trim()  || '',
+    Q12: document.getElementById('q12')?.value?.trim()  || '',
+    Q13: document.getElementById('q13')?.value?.trim()  || '',
+    Q135:document.getElementById('q135')?.value?.trim() || '',
+    Q14: document.getElementById('q14')?.value?.trim()  || '',
+    Q15: document.getElementById('q15')?.value?.trim()  || '',
+  };
+}
+
+// Semantic classifiers
+const RHO_WORDS = ['deleverage','deleveraging','restructur','transparent','atomic settlement','real settlement','genuine reset','write-down','restructure','clean up','true recovery'];
+const KAPPA_WORDS = ['qe','quantitative easing','liquidity','bailout','swap line','repo support','volatility suppression','synthetic absorption','patch','workaround','suppress','delay','kick the can','backstop','intervention','buyback','stimulus'];
+
+function semanticClass(text) {
+  const t = text.toLowerCase();
+  const isRho   = RHO_WORDS.some(w => t.includes(w));
+  const isKappa = KAPPA_WORDS.some(w => t.includes(w));
+  return { isRho, isKappa };
+}
+
+function textSimilarity(a, b) {
+  if (!a || !b) return 0;
+  const sa = new Set(a.toLowerCase().split(/\s+/));
+  const sb = new Set(b.toLowerCase().split(/\s+/));
+  const inter = [...sa].filter(w => sb.has(w)).length;
+  return inter / Math.max(sa.size, sb.size);
+}
+
+function validateInput(v) {
+  if (!v.Q4 || v.Q4.length < 10)
+    return 'Q4 (Θ — Tolerance) is required and must be specific. The diagnosis cannot run without it.';
+  if (!v.Q8 || v.Q8.length < 10)
+    return 'Q8 (κ — Displacement) is required and must be specific. You must name where stress is going.';
+  const filled = Object.values(v).filter(x => x.length > 10).length;
+  if (filled < 3)
+    return 'Answer at least 3 questions with real content (more than a few words).';
+  return null;
+}
+
+function detectSemanticConflicts(v) {
+  const warnings = [];
+  const rhoClass   = semanticClass(v.Q7);
+  const kappaClass = semanticClass(v.Q8);
+  const sim = textSimilarity(v.Q7, v.Q8);
+
+  // Q7 contains κ-type words
+  if (v.Q7 && rhoClass.isKappa && !rhoClass.isRho)
+    warnings.push({ type:'rho_kappa_mix', msg:'Q7 (ρ Restoration) contains masking/displacement language. ρ should describe structural healing — deleveraging, real settlement, restructuring — not temporary stabilization.' });
+
+  // Q8 contains ρ-type words
+  if (v.Q8 && kappaClass.isRho && !kappaClass.isKappa)
+    warnings.push({ type:'kappa_rho_mix', msg:'Q8 (κ Displacement) contains healing/restoration language. κ should describe masking channels — QE, swap lines, synthetic absorption — not structural repair.' });
+
+  // High similarity between Q7 and Q8
+  if (sim > 0.55 && v.Q7.length > 15 && v.Q8.length > 15)
+    warnings.push({ type:'duplicate', msg:'ρ (Q7) and κ (Q8) appear nearly identical. They must describe different things: ρ heals (structural), κ hides (temporary). Please review both answers.' });
+
+  return warnings;
+}
+
+function detectStructuralConflict(v, sem) {
+  // If κ (Q8) contains actions that directly prevent ρ (Q7) from occurring
+  if (!v.Q7 || !v.Q8) return false;
+  const kappaClass = semanticClass(v.Q8);
+  const rhoClass   = semanticClass(v.Q7);
+  // Structural conflict: κ is strongly present AND ρ requires structural change that κ prevents
+  return kappaClass.isKappa && rhoClass.isRho && sem.kappaPresent && sem.rhoAbsent === false;
+}
+
+// ── LAYER 2: STRUCTURAL ────────────────────────────────────────────────────
+function extractStructure(v) {
+  return {
+    hasTheta:    v.Q4.length > 10,
+    hasKappa:    v.Q8.length > 10,
+    hasKappaCap: v.Q135.length > 8,
+    hasFailure:  v.Q2.length > 8,
+    hasMetric:   v.Q10.length > 8,
+    hasRho:      v.Q7.length > 8,
+    hasSigma:    v.Q6.length > 8,
+    hasBoundary: v.Q13.length > 8,
+    hasPayer:    v.Q15.length > 8,
+    hasRail:     v.Q14.length > 8,
+    filledCount: Object.values(v).filter(x => x.length > 10).length,
+  };
+}
+
+// ── LAYER 3: SEMANTIC ──────────────────────────────────────────────────────
+// Domain-agnostic: reads DST variable answers, not domain keywords
+function semanticAnalysis(v) {
+  const all = Object.values(v).join(' ').toLowerCase();
+  const theta = (v.Q4 + ' ' + v.Q11).toLowerCase();
+  const kappa = (v.Q8 + ' ' + v.Q9 + ' ' + v.Q12).toLowerCase();
+  const rho   = v.Q7.toLowerCase();
+  const sigma = v.Q6.toLowerCase();
+  const q3    = v.Q3.toLowerCase();
+
+  // Θ weakness — how weak is the buffer described?
+  const thetaWeak =
+    /weak|limited|low|minimal|near.?zero|almost|shrink|declin|collaps|exhaust|running.?out|very.?little|nearly.?gone|critical|thin|small/
+    .test(theta);
+
+  // κ presence — is masking clearly named?
+  const kappaPresent = v.Q8.length > 15;
+
+  // κ overflow — signs of saturation approaching
+  const kappaOverflow =
+    /saturate|overflow|limit|maxim|ceiling|no.?more|running.?out|fail|break|exhaust|too.?much|overwhelm|not.?enough/
+    .test(kappa);
+
+  // Degradation trajectory
+  const degradation =
+    /worsen|increas|growing|more.?frequent|escalat|accumulat|getting.?worse|rising|compound/
+    .test(all);
+
+  // Stability claim — user says system is fine
+  const stabilityClaim =
+    /stable|fine|working|ok|healthy|normal|good|fine|no.?problem|functioning.?well/
+    .test(q3);
+
+  // ρ absence — user can't describe genuine restoration
+  const rhoAbsent = v.Q7.length < 12 ||
+    /nothing|unclear|unknown|don.?t.?know|not.?sure|no.?way|can.?t/
+    .test(rho);
+
+  // σ loop present — nonlinear stress described
+  const sigmaLoop =
+    /reinforce|loop|feedback|amplif|compound|spiral|cascade|worsen.?itself|nonlinear/
+    .test(sigma);
+
+  return {
+    thetaWeak, kappaPresent, kappaOverflow,
+    degradation, stabilityClaim, rhoAbsent, sigmaLoop
+  };
+}
+
+// ── LAYER 4: SIGNAL STRENGTH ───────────────────────────────────────────────
+function signalStrength(sem) {
+  let score = 0;
+  if (sem.kappaPresent)   score += 2;
+  if (sem.thetaWeak)      score += 2;
+  if (sem.kappaOverflow)  score += 3;
+  if (sem.degradation)    score += 2;
+  if (sem.rhoAbsent)      score += 2;
+  if (sem.sigmaLoop)      score += 1;
+  return score;
+}
+
+// ── LAYER 5: REGIME ENGINE ─────────────────────────────────────────────────
+function determineRegime(v, sem, score) {
+  const q3 = v.Q3.toLowerCase();
+  let userRegime = 'Unknown';
+  if (q3.includes('residual')) userRegime = 'Residual';
+  else if (q3.includes('late plastic') || q3.includes('late-plastic')) userRegime = 'Late Plastic';
+  else if (q3.includes('plastic'))  userRegime = 'Plastic';
+  else if (q3.includes('elastic'))  userRegime = 'Elastic';
+
+  // Mechanical regime — from observable signals
+  let mechanical = 'Elastic';
+  if (sem.kappaPresent && sem.thetaWeak && sem.kappaOverflow) mechanical = 'Late Plastic';
+  else if (sem.kappaPresent && sem.thetaWeak) mechanical = 'Plastic';
+  else if (sem.kappaPresent) mechanical = 'Plastic';
+  if (score >= 7) mechanical = 'Residual';
+  if (score >= 5 && sem.kappaOverflow) mechanical = 'Late Plastic';
+
+  // Structural regime — from user classification (their deeper map)
+  // If user says Residual but signals say Late Plastic → structural is Residual, mechanical is Late Plastic
+  const structural = userRegime !== 'Unknown' ? userRegime : mechanical;
+  const structuralLocked = userRegime === 'Residual' && mechanical !== 'Residual';
+  const mechanicalConf = 'HIGH';
+  const structuralConf = userRegime !== 'Unknown' ? 'INFERRED' : 'HIGH';
+
+  return {
+    user: userRegime,
+    detected: mechanical,      // backward compat
+    mechanical,
+    structural,
+    structuralLocked,
+    mechanicalConf,
+    structuralConf
+  };
+}
+
+// ── LAYER 6: CONTRADICTION ENGINE ─────────────────────────────────────────
+function detectContradictions(v, regime, sem) {
+  const issues = [];
+
+  // Contradiction 1: claims stability but high κ dominance (structural contradiction)
+  if (sem.stabilityClaim && sem.kappaPresent) {
+    const kap = v.Q8.length > 40 ? v.Q8.substring(0,60)+'...' : v.Q8;
+    issues.push(`System classified as stable, but κ describes active displacement: "${kap}" — stability claim contradicts masking evidence`);
+  }
+
+  // Contradiction 2: stability claimed but ρ absent (structural contradiction)
+  if (sem.stabilityClaim && sem.rhoAbsent) {
+    issues.push(`System described as stable but genuine restoration path (Q7) is undefined — stability without ρ is κ-dependent, not real`);
+  }
+
+  // Contradiction 3: κ overflow but no κ-cap defined
+  if (sem.kappaOverflow && !v.Q135) {
+    issues.push(`Displacement channel shows overflow signals but κ-cap (Q13.5) is undefined — the rail cannot work until masking is capped`);
+  }
+
+  // NOTE: Regime difference (Residual vs Late Plastic) is NOT a contradiction —
+  // it is handled by the dual regime display. No regime-difference contradiction here.
+
+  return issues;
+}
+
+// ── LAYER 7: CONFIDENCE ────────────────────────────────────────────────────
+function confidenceScore(struct) {
+  const f = struct.filledCount;
+  if (f >= 10) return 'HIGH';
+  if (f >= 6)  return 'MEDIUM';
+  return 'LOW';
+}
+
+function confidenceTone(conf) {
+  if (conf === 'HIGH')   return { note: 'Full diagnostic confidence — all key variables present', pct: 92 };
+  if (conf === 'MEDIUM') return { note: 'Directional diagnosis — complete Q4 and Q8 for full precision', pct: 55 };
+  return { note: 'Partial input — results are indicative only', pct: 22 };
+}
+
+// ── LAYER 8: GAP DETECTION (STRUCTURAL ONLY) ──────────────────────────────
+function detectGaps(struct) {
+  return [
+    { ok: struct.hasTheta,    text: struct.hasTheta    ? 'Θ tolerance defined'        : 'Θ tolerance missing — buffer estimate unavailable' },
+    { ok: struct.hasKappa,    text: struct.hasKappa    ? 'κ displacement named'       : 'κ displacement undefined — cannot identify masking channel' },
+    { ok: struct.hasKappaCap, text: struct.hasKappaCap ? 'κ-cap defined'              : 'κ-cap undefined — rail cannot activate safely' },
+    { ok: struct.hasFailure,  text: struct.hasFailure  ? 'Failure condition defined'  : 'Failure condition undefined — endpoint unclear' },
+    { ok: struct.hasMetric,   text: struct.hasMetric   ? 'Lying metric identified'    : 'Lying metric missing — false reassurance signal unnamed' },
+    { ok: struct.hasRho,      text: struct.hasRho      ? 'ρ restoration path named'   : 'ρ restoration absent — no genuine healing path defined' },
+    { ok: struct.hasPayer,    text: struct.hasPayer     ? 'Payer identified'           : 'Payer unidentified — commercial pressure point unknown' },
+  ];
+}
+
+// ── LAYER 9: INSIGHT ENGINE ────────────────────────────────────────────────
+function generateInsight(regime, sem, conf, v) {
+  const kap = v.Q8 ? `"${v.Q8.substring(0,50)}${v.Q8.length>50?'...':''}"` : 'the displacement channel';
+  const met = v.Q10 || 'the surface metric';
+
+  if (regime.detected === 'Residual') {
+    return {
+      title: 'System near failure boundary. Time is the dominant variable.',
+      body: conf === 'LOW'
+        ? `Based on partial data, signals point to residual-regime dynamics. Complete Q4 and Q8 for full confirmation. If accurate: the system no longer has elastic recovery capacity. κ saturation is structural, not cyclical.`
+        : `Masking is failing to compensate for stress accumulation. ${met} is decoupled from real tolerance. The system is operating inside its failure boundary — apparent calm is not evidence of health.`
+    };
+  }
+  if (regime.detected === 'Late Plastic') {
+    return {
+      title: 'Stability depends on displacement. Window for intervention narrowing.',
+      body: `κ ${kap} is approaching saturation. Each cycle costs more tolerance than it buys. ${sem.rhoAbsent ? 'No genuine restoration path is defined — the system has no ρ available, which accelerates the residual transition.' : 'Genuine restoration exists but is not dominating — the system is surviving, not healing.'}`
+    };
+  }
+  if (regime.detected === 'Plastic') {
+    return {
+      title: 'Apparent stability masking structural decline.',
+      body: `The system looks functional because ${kap} is compensating for insufficient restoration. ${met} looks calm. Θ is declining. This is the window where a reset rail is still viable — but becomes more expensive with every passing cycle.`
+    };
+  }
+  return {
+    title: 'Elastic regime — genuine recovery appears operational.',
+    body: `The system retains real restoration capacity. Risk: complacency. Elastic regimes transition to plastic gradually, masked by the stability that makes them appear safe. Monitor the Θ-proxy (${v.Q11 || 'Q11'}) proactively.`
+  };
+}
+
+// ── LAYER 10: SYSTEM CHALLENGE ─────────────────────────────────────────────
+function generateChallenge(contradictions, regime, v, conf) {
+  // Use contradiction as primary source — this is the killer feature
+  if (contradictions.length > 0) {
+    return {
+      q: contradictions[0],
+      body: contradictions.length > 1
+        ? `Additional contradiction: ${contradictions[1]}`
+        : `This is the structural tension the system is currently hiding from itself. The observability gap exists precisely because acknowledging this would require action the system is not ready to take.`
+    };
+  }
+
+  const kap = v.Q8 ? `"${v.Q8.substring(0,50)}${v.Q8.length>50?'...':''}"` : 'your displacement channel';
+
+  if (conf === 'LOW') {
+    return {
+      q: 'Insufficient data to generate a specific challenge.',
+      body: 'Complete Q4 (Θ) and Q8 (κ) with specific answers. The challenge cannot be meaningful without knowing what is being masked and what capacity remains.'
+    };
+  }
+
+  if (regime.detected === 'Residual') {
+    return {
+      q: `If ${kap} stopped working tomorrow — what breaks first and what is the cascade sequence?`,
+      body: 'In a residual regime this is not a hypothetical. κ exhaustion is structural. Your answer is your actual failure plan, not your theoretical one.'
+    };
+  }
+
+  return {
+    q: `How would the system behave if ${kap} was removed for 30 days?`,
+    body: `The answer reveals how much of the system's apparent function depends on masking versus genuine capacity. If removal would cause immediate crisis, the system is more plastic than it appears.`
+  };
+}
+
+// ── LAYER 11: BUILD REPORT ────────────────────────────────────────────────
+function buildReport(v, regime, conf) {
+  const mechConf = regime.mechanicalConf || conf;
+  const structConf = regime.structuralConf || 'INFERRED';
+  const locked = regime.structuralLocked ? ' (locked outcome)' : '';
+
+  return `DST CANONICAL DIAGNOSTIC REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SYSTEM: ${v.Q1 || '—'}
+
+MECHANICAL REGIME: ${(regime.mechanical||regime.detected).toUpperCase()} [Confidence: ${mechConf}]
+STRUCTURAL REGIME: ${(regime.structural||regime.user).toUpperCase()}${locked} [Confidence: ${structConf}]
+System continues to function via κ, but structural transition is already embedded.
+
+CONFIDENCE: ${conf}
+
+FAILURE CONDITION:
+${v.Q2 || '—'}
+
+TRUE REMAINING TOLERANCE (Θ):
+${v.Q4 || '—'}
+
+IRREVERSIBLE DAMAGE (D):
+${v.Q5 || '—'}
+
+STRESS ENGINE (σ):
+${v.Q6 || '—'}
+
+TRUE RESTORATION (ρ — structural healing only):
+${v.Q7 || '—'}
+
+DISPLACEMENT CHANNEL (κ — masking only):
+${v.Q8 || '—'}
+
+κ-CAP REQUIRED:
+${v.Q135
+  ? v.Q135.replace(/must lose effectiveness/gi, 'Expansion of synthetic stabilization channels must stop. System cannot restore while κ continues to expand.')
+  : 'Expansion of synthetic stabilization channels must stop. System cannot restore while κ continues to expand.'}
+
+SINK SATURATES WHEN:
+${v.Q9 || '—'}
+
+LYING METRIC:
+${v.Q10 || '—'}
+
+EARLIEST Θ WARNING:
+${v.Q11 || '—'}
+
+EARLIEST κ FAILURE SIGNAL:
+${v.Q12 || '—'}
+
+TRANSITION BOUNDARY:
+${v.Q13 || '—'}
+TRANSITION TYPE: NONLINEAR — failure will not be gradual
+
+CORRECT RAIL:
+${v.Q14 || '—'}
+
+PAYER & SINK:
+${v.Q15 || '—'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DST Compass v8 · Idan Rephiah · 2026
+SSRN 6434119 · ρ heals. κ hides. σ kills.`;
+}
+
+// ── LAYER 12: PREMIUM ENGINE ──────────────────────────────────────────────
+function premiumEngine(v, sem, regime) {
+  const kap  = v.Q8  || 'the displacement channel';
+  const met  = v.Q10 || 'the surface metric';
+  const cap  = v.Q135 || 'undefined — this must be named before any rail can work';
+  const prxy = v.Q11 || 'the Θ proxy';
+  const rail = v.Q14 || 'the correct rail';
+
+  const risk = sem.kappaPresent
+    ? `Hidden risk driven by κ: the system's apparent stability depends on "${kap}". When this channel saturates, stress re-enters the core system without the buffer it has been relying on. The transition will not be gradual.`
+    : `No strong masking signal detected in the answers provided. This may indicate the system is genuinely elastic — or that κ has not been correctly identified.`;
+
+  const blind = !v.Q135
+    ? `Critical blind spot: κ-cap is undefined. The system does not have a plan for what happens when displacement reaches its limit. This is the highest-probability surprise event.`
+    : `κ-cap defined as: "${cap}". Blind spot: monitor whether this cap is being enforced in practice or only in principle.`;
+
+  const gap_out = `y(t) — ${met} — is decoupled from Θ. ${sem.thetaWeak
+    ? `Θ signals indicate low remaining tolerance. The observable says calm. The real tolerance is critically low.`
+    : `Θ appears adequate currently, but watch the proxy: ${prxy}`}. This decoupling is the observability gap — the structural mechanism that makes residual-regime failures arrive without apparent warning.`;
+
+  const action = sem.kappaPresent
+    ? `First: reduce or cap "${kap}" — do not attempt ${rail} while displacement is fully active. Second: monitor "${prxy}" daily, not "${met}". Third: only activate the rail after κ is capped.`
+    : `Monitor emerging stress signals. Establish baseline measurements for ${prxy} now, before stress accumulates.`;
+
+  const time_est = regime.detected === 'Residual'
+    ? `Based on κ-saturation signals and damage accumulation described, the displacement channel is in late-stage operation. The window for effective reset intervention is measured in cycles, not years. Each delay increases the required intervention nonlinearly.`
+    : `The system retains intervention capacity. A pulse or reset rail initiated now costs significantly less than the same intervention after further Θ decline. Early action preserves global tolerance. Deferred action sacrifices it.`;
+
+  return { risk, blind, gap: gap_out, action, time: time_est };
+}
+
+// ── LAYER 13: AI PROMPT BUILDER ───────────────────────────────────────────
+function buildAIPrompt(v, regime, conf, gaps, sem, score) {
+  const gapText = gaps.filter(g => !g.ok).map(g => g.text).join('; ') || 'None';
+  return `You are a DST (Declining Stress Threshold) expert analyst. DST Framework:
+- σ kills: nonlinear stress amplification
+- ρ heals: true restoration, always bounded  
+- κ hides: stress displacement, finite, creates calm without health
+- Core equation: dΘ/dt = ρ − σ_eff
+- Terminal condition: lim sup(ρ+κ) < lim inf(σ) → Θ→0
+- Regimes: Elastic (ρ dominates), Plastic (κ compensates), Late Plastic (κ near limit), Residual (κ→κmax, Θ→0)
+
+SYSTEM CONTEXT:
+- Regime detected: ${regime.detected}
+- User classified: ${regime.user}
+- Confidence: ${conf}
+- Signal score: ${score}/14
+- Semantic flags: κ present=${sem.kappaPresent}, Θ weak=${sem.thetaWeak}, κ overflow=${sem.kappaOverflow}, ρ absent=${sem.rhoAbsent}, σ loop=${sem.sigmaLoop}
+- Structural gaps: ${gapText}
+
+TASK — Provide sharp, specific analysis referencing the actual answers:
+1. REGIME CONFIRMATION — is the detected regime correct, and why specifically
+2. HIDDEN RISKS — what was likely underestimated or missed in these answers
+3. κ-CAP PRIORITY — what specifically must be reduced before any rail can work
+4. OBSERVABILITY GAP — where y(t) is most dangerously decoupled from Θ right now
+5. RAIL ASSESSMENT — is the chosen rail correct, and what is the single first concrete step
+6. CRITICAL WARNING — the one thing most likely to cause failure that is not yet being addressed
+
+Be direct. Be specific. Reference the actual answers. Do not be generic.
+
+DIAGNOSTIC ANSWERS:
+System: ${v.Q1 || '—'}
+Failure: ${v.Q2 || '—'}
+Regime (user): ${v.Q3 || '—'}
+Θ: ${v.Q4 || '—'}
+D: ${v.Q5 || '—'}
+σ: ${v.Q6 || '—'}
+ρ: ${v.Q7 || '—'}
+κ: ${v.Q8 || '—'}
+κmax: ${v.Q9 || '—'}
+Lying metric: ${v.Q10 || '—'}
+Θ proxy: ${v.Q11 || '—'}
+κ proxy: ${v.Q12 || '—'}
+Boundary: ${v.Q13 || '—'}
+κ-cap: ${v.Q135 || '—'}
+Rail: ${v.Q14 || '—'}
+Payer: ${v.Q15 || '—'}`;
+}
+
+// ── LAYER 14: RENDER ──────────────────────────────────────────────────────
+function renderStateDisplay(regime, conf) {
+  const tone = confidenceTone(conf);
+  const stateClass = {
+    'Elastic': 'elastic', 'Plastic': 'plastic',
+    'Late Plastic': 'late-plastic', 'Residual': 'residual'
+  }[regime.detected] || 'plastic';
+
+  const confClass = conf === 'HIGH' ? 'conf-high' : conf === 'MEDIUM' ? 'conf-med' : 'conf-low';
+  const confPct   = conf === 'HIGH' ? 90 : conf === 'MEDIUM' ? 55 : 20;
+  const confColor = conf === 'HIGH' ? 'var(--green)' : conf === 'MEDIUM' ? 'var(--amber)' : 'var(--red)';
+
+  document.getElementById('state-display').innerHTML = `
+    <div class="state-main">
+      <span class="state-label-small">System State</span>
+      <div class="state-value ${stateClass}">${regime.detected}</div>
+      <span class="state-sub">Detected · User: ${regime.user}</span>
+    </div>
+    <div class="confidence-box">
+      <span class="conf-label">Diagnostic Confidence</span>
+      <span class="conf-value ${confClass}">${conf}</span>
+      <div class="conf-bar">
+        <div class="conf-fill" style="width:${confPct}%; background:${confColor};"></div>
+      </div>
+      <span class="conf-note">${tone.note}</span>
+    </div>`;
+}
+
+function renderContradictions(contradictions) {
+  const wrap = document.getElementById('contra-wrap');
+  if (!contradictions.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <div class="contradiction-banner">
+      <span class="contra-label">⚠ CONTRADICTION DETECTED — ${contradictions.length} found</span>
+      ${contradictions.map(ct => `<div class="contra-item">${ct}</div>`).join('')}
+    </div>`;
+}
+
+function renderSemanticWarnings(warnings, structuralConflict) {
+  // Find or create semantic warning container
+  let sw = document.getElementById('semantic-warn-wrap');
+  if (!sw) {
+    // Insert after contra-wrap
+    const cw = document.getElementById('contra-wrap');
+    if (cw) {
+      sw = document.createElement('div');
+      sw.id = 'semantic-warn-wrap';
+      cw.parentNode.insertBefore(sw, cw.nextSibling);
+    }
+  }
+  if (!sw) return;
+  let html = '';
+  if (warnings.length) {
+    html += `<div class="contradiction-banner" style="border-left-color:var(--amber);background:rgba(200,120,10,0.1);">
+      <span class="contra-label" style="color:var(--amber);">⚠ SEMANTIC WARNING — Review your answers</span>
+      ${warnings.map(w=>`<div class="contra-item" style="color:rgba(245,210,150,0.9);">${w.msg}</div>`).join('')}
+    </div>`;
+  }
+  if (structuralConflict) {
+    html += `<div class="contradiction-banner" style="border-left-color:#cc8800;background:rgba(180,100,0,0.12);">
+      <span class="contra-label" style="color:#cc8800;">⚠ STRUCTURAL CONFLICT DETECTED</span>
+      <div class="contra-item" style="color:rgba(245,210,150,0.9);">Current κ prevents stated ρ from occurring. System cannot heal while masking continues. The restoration path described in Q7 is structurally blocked by the displacement channel in Q8.</div>
+    </div>`;
+  }
+  sw.innerHTML = html;
+}
+
+function renderMeters(sem, score) {
+  const kapScore  = Math.min((sem.kappaPresent ? 40 : 0) + (sem.kappaOverflow ? 35 : 0) + (sem.degradation ? 25 : 0), 100);
+  const thetaScore = 100 - Math.min((sem.thetaWeak ? 50 : 10) + (sem.kappaOverflow ? 30 : 0), 95);
+  const dScore     = Math.min((sem.degradation ? 50 : 15) + (sem.kappaOverflow ? 30 : 0) + (sem.thetaWeak ? 20 : 0), 100);
+  const rhoScore   = sem.rhoAbsent ? 8 : Math.min(60 + (sem.sigmaLoop ? 0 : 20), 85);
+
+  document.getElementById('meter-grid').innerHTML = `
+    <div>
+      <span class="meter-label">κ Dependence</span>
+      <div class="meter-bar"><div class="meter-fill m-red" id="m-kappa"></div></div>
+      <span class="meter-val">${kapScore}%</span>
+    </div>
+    <div>
+      <span class="meter-label">Θ Remaining</span>
+      <div class="meter-bar"><div class="meter-fill m-green" id="m-theta"></div></div>
+      <span class="meter-val">${thetaScore}%</span>
+    </div>
+    <div>
+      <span class="meter-label">D Accumulation</span>
+      <div class="meter-bar"><div class="meter-fill m-amber" id="m-damage"></div></div>
+      <span class="meter-val">${dScore}%</span>
+    </div>
+    <div>
+      <span class="meter-label">ρ Capacity</span>
+      <div class="meter-bar"><div class="meter-fill m-gold" id="m-rho"></div></div>
+      <span class="meter-val">${rhoScore}%</span>
+    </div>`;
+
+  setTimeout(() => {
+    document.getElementById('m-kappa').style.width  = kapScore + '%';
+    document.getElementById('m-theta').style.width  = thetaScore + '%';
+    document.getElementById('m-damage').style.width = dScore + '%';
+    document.getElementById('m-rho').style.width    = rhoScore + '%';
+  }, 150);
+}
+
+// ── DST RISK SCORE (Layer new) ────────────────────────────────────────────
+function dstRiskScore(sem, score, struct) {
+  let base = (score * 5) + (struct.filledCount * 2);
+  if (sem.thetaWeak)       base += 10;
+  if (sem.kappaOverflow)   base += 15;
+  if (sem.rhoAbsent)       base += 8;
+  if (!struct.hasKappaCap) base += 7;
+  if (sem.degradation)     base += 5;
+  if (sem.kappaPresent && sem.thetaWeak) base += 5;
+  return Math.min(Math.round(base), 100);
+}
+
+function scoreColorClass(n) {
+  if (n >= 75) return 'crit';
+  if (n >= 50) return 'high';
+  if (n >= 25) return 'mid';
+  return 'low';
+}
+
+function scoreBarColor(n) {
+  if (n >= 75) return '#cc6666';
+  if (n >= 50) return 'var(--amber)';
+  if (n >= 25) return 'var(--gold)';
+  return '#6aaa6a';
+}
+
+// ── DECISION ENGINE ────────────────────────────────────────────────────────
+function generateDecision(v, regime, sem) {
+  const kap = v.Q8
+    ? v.Q8.substring(0, 55) + (v.Q8.length > 55 ? '...' : '')
+    : 'primary κ channel';
+  const cap  = v.Q135 || 'the displacement channel';
+  const met  = v.Q10  || 'your surface metric';
+  const prxy = v.Q11  || 'earliest Θ proxy';
+  const rail = v.Q14  || 'the correct rail';
+
+  const actions = {
+    Residual: {
+      title: 'CRITICAL — System in delayed failure. 48-hour window.',
+      items: [
+        `STOP: All non-essential expansion — immediately`,
+        `CAP: Primary κ channel now → "${kap}"`,
+        `FREEZE: No new stress inputs until Θ stabilizes`,
+        `ASSESS: Is reset rail still viable? → ${rail}`,
+      ]
+    },
+    'Late Plastic': {
+      title: 'URGENT — Displacement approaching limit. Act before saturation.',
+      items: [
+        `STOP: Do not add stress. System has no buffer.`,
+        `CAP: "${cap}" before attempting any restoration`,
+        `MONITOR: "${prxy}" — daily, not weekly`,
+        `HOLD: No new initiatives until one κ channel is reduced`,
+      ]
+    },
+    Plastic: {
+      title: 'WARNING — Masking is active. Strategic shift required.',
+      items: [
+        `STOP: Trusting "${met}" — it is the lying metric`,
+        `CAP: Identify first removable κ → "${kap}"`,
+        `SHIFT: From masking (κ) to restoration (ρ)`,
+        `TEST: Run pulse rail to verify genuine recovery capacity`,
+      ]
+    },
+    Elastic: {
+      title: 'MONITOR — System elastic. Maintain restoration dominance.',
+      items: [
+        `WATCH: "${prxy}" — before conventional metrics move`,
+        `MAINTAIN: ρ dominance — do not let κ substitute`,
+        `AVOID: Introducing displacement channels unnecessarily`,
+      ]
+    }
+  };
+
+  return actions[regime.detected] || actions.Elastic;
+}
+
+// ── κ DOMINANCE ────────────────────────────────────────────────────────────
+function kappaDominance(sem, regime, v) {
+  const kap = v && v.Q8 ? v.Q8 : null;
+  const desc = (level, fallback) =>
+    kap ? `System survival currently depends on: "${kap}"` : fallback;
+
+  if (regime.detected === 'Residual' || (sem.kappaPresent && sem.thetaWeak && sem.kappaOverflow)) {
+    return { level: 'CRITICAL', class: 'kappa-crit',
+      desc: desc('CRITICAL', 'System survival entirely depends on masking. κ is the only thing between function and failure.') };
+  }
+  if (sem.kappaPresent && sem.thetaWeak) {
+    return { level: 'HIGH', class: 'kappa-high',
+      desc: desc('HIGH', 'System survival depends on masking. Removing κ without restoration will trigger cascade.') };
+  }
+  if (sem.kappaPresent) {
+    return { level: 'MEDIUM', class: 'kappa-med',
+      desc: desc('MEDIUM', 'Masking is active and compensating. System is not healing — it is hiding.') };
+  }
+  return { level: 'LOW', class: 'kappa-low',
+    desc: 'Displacement is minimal. System appears to be operating on genuine restoration.' };
+}
+
+// ── FAILURE PATH SIMULATION ────────────────────────────────────────────────
+function generateFailurePath(v, regime) {
+  const kap  = v.Q8  || 'the displacement channel';
+  const kapShort = kap.substring(0,55) + (kap.length>55?'...':'');
+  const sat  = v.Q9  || 'displacement budget exhausted — masking stops functioning';
+  const fail = v.Q2  ? `System reaches failure condition: "${v.Q2}"` : 'Primary failure condition triggered';
+  const sig  = v.Q6
+    ? `σ loop runs unmasked: "${v.Q6.substring(0,70)}${v.Q6.length>70?'...':''}" — nonlinear deterioration begins`
+    : 'σ feedback loop runs unmasked — nonlinear deterioration accelerates';
+  const pay  = v.Q15 ? v.Q15.split('.')[0] : 'the system and its dependents';
+  const payText = `${pay} absorbs the full cost. No buffer remains. No managed transition available.`;
+
+  // Step 1 with Trigger/Effect structure
+  const step1 = `Trigger: ${sat.substring(0,80)}${sat.length>80?'...':''}`;
+
+  return {
+    ifText: `If "${kapShort}" stops working:`,
+    steps: [
+      { free: true,  text: step1 },
+      { free: false, text: fail },
+      { free: false, text: sig },
+      { free: false, text: payText },
+    ]
+  };
+}
+
+// ── SHARE SCORE ────────────────────────────────────────────────────────────
+function shareScore() {
+  const score = Math.min(S.dstScore || 0, 99);
+  const regime = S.regime?.detected || 'Unknown';
+  const text = `DST Risk Score: ${score}/100 | Regime: ${regime} | Diagnosed with DST Compass by Idan Rephiah | ssrn.com/abstract=6434119`;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Score copied — paste anywhere to share');
+  });
+}
+
+function copyScore() {
+  const score = Math.min(S.dstScore || 0, 99);
+  const regime = S.regime?.detected || 'Unknown';
+  navigator.clipboard.writeText(`DST Score: ${score}/100 — ${regime}`)
+    .then(() => alert('Copied: DST Score: ' + score + '/100 — ' + regime));
+}
+
+// ── PAYMENT HANDLER (v6 — manual, v9 will be XRP) ─────────────────────────
+function handlePayment() {
+  // v6: simulate unlock for demo. v9: Xaman deeplink + XRPL verify
+  const confirmed = confirm(
+    'DST Compass — Full Diagnosis\n\n' +
+    'Price: $19 (payable in XRP)\n\n' +
+    'Unlocks:\n' +
+    '• Full failure cascade (all 4 steps)\n' +
+    '• Action protocol\n' +
+    '• Time-to-collapse estimate\n\n' +
+    'Click OK to unlock (payment integration coming in v9)'
+  );
+  if (confirmed) unlockPremiumV6();
+}
+
+function unlockPremiumV6() {
+  const v = S.values;
+  const sem = S.semantic;
+  const regime = S.regime;
+  const kap  = v.Q8  || 'the displacement channel';
+  const sat  = v.Q9  || 'κ saturation point';
+  const fail = v.Q2  || 'primary failure condition';
+  const rail = v.Q14 || 'the correct rail';
+  const cap  = v.Q135 || 'the primary κ channel';
+  const prxy = v.Q11 || 'earliest Θ proxy';
+  const pay  = v.Q15 ? v.Q15.split('.')[0] : 'the system and its dependents';
+
+  // Reveal locked failure steps
+  document.querySelectorAll('.failure-step.locked').forEach((el, i) => {
+    el.classList.remove('locked');
+    const overlay = el.querySelector('.lock-overlay');
+    if (overlay) overlay.remove();
+    const content = el.querySelector('.failure-step-content');
+    if (content) content.style.filter = 'none';
+    if (content) content.style.color = 'rgba(245,240,232,0.85)';
+  });
+
+  // Build premium content — time estimate urgency-calibrated to structural regime
+  const structR2 = regime.structural || regime.detected;
+  const timeEst = (structR2 === 'Residual' || regime.structuralLocked)
+    ? `System retains mechanical intervention capacity, but diminishing rapidly. Each additional κ cycle increases nonlinearity of transition. Delay reduces probability of controlled outcome. The window for a managed reset rail is closing — not closed, but closing. TRANSITION TYPE: NONLINEAR — failure will not be gradual.`
+    : regime.detected === 'Late Plastic'
+    ? `System is in late-stage displacement. Intervention capacity exists but costs are rising with each cycle. A reset rail initiated now is significantly cheaper than the same action after further Theta decline. Do not wait for conventional metrics to confirm — by then, the cost of action will have increased nonlinearly.`
+    : `Intervention capacity is available. Early action preserves global tolerance. Deferred action sacrifices it.`;
+
+  document.getElementById('premium-gate').style.display = 'none';
+  document.getElementById('premium-content').innerHTML = `
+    <div class="out-card red" style="margin-bottom:10px;">
+      <span class="out-label red-l">Hidden Risk Layer</span>
+      <div class="out-body">${sem.kappaPresent
+        ? `Hidden risk driven by κ: the system's apparent stability depends on "${kap}". When this channel saturates, stress re-enters at full intensity without any buffer. The transition will not be gradual.`
+        : `No strong masking risk detected. Verify κ is correctly identified in Q8.`}</div>
+    </div>
+    <div class="out-card amber" style="margin-bottom:10px;">
+      <span class="out-label amber-l">Critical Blind Spot</span>
+      <div class="out-body">${!v.Q135
+        ? `κ-cap is undefined. The system has no plan for what happens when displacement reaches its limit. This is the highest-probability surprise event.`
+        : `κ-cap defined as: "${cap}". Verify this cap is enforced in practice, not only in principle.`}</div>
+    </div>
+    <div class="out-card gold" style="margin-bottom:10px;">
+      <span class="out-label">Observability Gap</span>
+      <div class="out-body">y(t) — "${v.Q10 || 'surface metric'}" — is decoupled from Θ. The observable says calm. The real tolerance is ${sem.thetaWeak ? 'critically low' : 'declining'}. Watch the proxy: "${prxy}" — it moves before the lying metric breaks.</div>
+    </div>
+    <div class="out-card green" style="margin-bottom:10px;">
+      <span class="out-label green-l">Action Protocol</span>
+      <div class="out-body">First: cap "${cap}" — do not activate ${rail} while displacement is fully active. Second: monitor "${prxy}" daily, not "${v.Q10 || 'the lying metric'}". Third: activate rail only after κ is capped and Θ proxy stabilizes.</div>
+    </div>
+    <div class="out-card dark">
+      <span class="out-label">Time Estimate</span>
+      <div class="out-body">${timeEst}</div>
+    </div>`;
+  document.getElementById('premium-content').style.display = 'block';
+  S.premiumDone = true;
+}
+async function runDiagnosis() {
+  const errBox = document.getElementById('error-box');
+  errBox.classList.remove('show');
+  const v = collectValues();
+  const err = validateInput(v);
+  if (err) { errBox.textContent = '⚠ ' + err; errBox.classList.add('show'); return; }
+  document.getElementById('loading1').classList.add('active');
+  document.getElementById('btn-analyse').disabled = true;
+
+  S.values=v; S.structure=extractStructure(v); S.semantic=semanticAnalysis(v);
+  S.signals=signalStrength(S.semantic); S.regime=determineRegime(v,S.semantic,S.signals);
+  S.contradictions=detectContradictions(v,S.regime,S.semantic);
+  S.confidence=confidenceScore(S.structure); S.gaps=detectGaps(S.structure);
+  S.insight=generateInsight(S.regime,S.semantic,S.confidence,v);
+  S.challenge=generateChallenge(S.contradictions,S.regime,v,S.confidence);
+  S.dstScore=dstRiskScore(S.semantic,S.signals,S.structure);
+  S.decision=generateDecision(v,S.regime,S.semantic);
+  S.kappaDom=kappaDominance(S.semantic,S.regime,v);
+  S.failurePath=generateFailurePath(v,S.regime);
+  S.report=buildReport(v,S.regime,S.confidence);
+  const hashContent=`SCORE:${S.dstScore}|REGIME:${S.regime.detected}|`+S.report;
+  S.hash=await sha256(hashContent);
+
+  // 1. System status strip
+  const statusEl = document.getElementById('system-status-strip');
+  if (statusEl) {
+    // Use structural regime (more severe) for status strip
+    const statusRegime = S.regime.structural || S.regime.detected;
+    const statusMap = {
+      'Residual':    { text:'SYSTEM STATUS: Operating beyond true tolerance — structural failure embedded', cls:'status-critical' },
+      'Late Plastic':{ text:'SYSTEM STATUS: Operating beyond true tolerance', cls:'status-critical' },
+      'Plastic':     { text:'SYSTEM STATUS: Operating on borrowed stability', cls:'status-borrowed' },
+      'Elastic':     { text:'SYSTEM STATUS: Operating within tolerance', cls:'status-ok' },
+    };
+    const st = statusMap[statusRegime] || statusMap.Elastic;
+    statusEl.textContent = st.text;
+    statusEl.className = 'system-status-strip ' + st.cls;
+    statusEl.style.display = 'block';
+  }
+
+  // 2. Score (clamped at 99 visually)
+  const visualScore = Math.min(S.dstScore, 99);
+  const scoreEl=document.getElementById('score-number');
+  scoreEl.textContent=visualScore;
+  scoreEl.className=`score-number ${scoreColorClass(S.dstScore)}`;
+  const fill=document.getElementById('score-bar-fill');
+  fill.style.background=scoreBarColor(S.dstScore);
+  setTimeout(()=>{fill.style.width=visualScore+'%';},150);
+
+  // 3. Score breakdown (replaces separate meters — Option C)
+  const kapScore  = Math.min((S.semantic.kappaPresent?40:0)+(S.semantic.kappaOverflow?35:0)+(S.semantic.degradation?25:0),100);
+  const thetaScore= Math.max(100-Math.min((S.semantic.thetaWeak?50:10)+(S.semantic.kappaOverflow?30:0),95),5);
+  const dScore    = Math.min((S.semantic.degradation?50:15)+(S.semantic.kappaOverflow?30:0)+(S.semantic.thetaWeak?20:0),100);
+  const rhoScore  = S.semantic.rhoAbsent ? 8 : Math.min(60+(S.semantic.sigmaLoop?0:20),85);
+  setTimeout(()=>{
+    const sb = (id,val)=>{ const el=document.getElementById(id); if(el) el.style.width=val+'%'; };
+    sb('sb-kappa',kapScore); sb('sb-theta',thetaScore); sb('sb-damage',dScore); sb('sb-rho',rhoScore);
+    const sv = (id,val,suffix)=>{ const el=document.getElementById(id); if(el) el.textContent=val+suffix; };
+    sv('sbv-kappa',kapScore,'% pressure'); sv('sbv-theta',thetaScore,'% remaining');
+    sv('sbv-damage',dScore,'% severity'); sv('sbv-rho',rhoScore,'% capacity');
+  },200);
+
+  // 4. Dual regime label
+  const isDualRegime = S.regime.structural !== S.regime.mechanical &&
+                       S.regime.user !== 'Unknown';
+  const frLabel = document.getElementById('final-regime-label');
+  if (frLabel) {
+    if (isDualRegime) {
+      frLabel.innerHTML =
+        `<span style="display:block;margin-bottom:2px;">MECHANICAL: <strong style="color:var(--gold)">${S.regime.mechanical}</strong> <span style="color:var(--light);font-size:9px;">[${S.regime.mechanicalConf}]</span></span>` +
+        `<span style="display:block;margin-bottom:2px;">STRUCTURAL: <strong style="color:#cc6666;">${S.regime.structural}</strong>${S.regime.structuralLocked?' <span class="obs-gap-tag">(locked outcome)</span>':''} <span style="color:var(--light);font-size:9px;">[${S.regime.structuralConf}]</span></span>` +
+        `<span style="display:block;font-size:11px;color:rgba(245,240,232,0.5);font-style:italic;margin-top:4px;">System functions via κ — structural transition already embedded</span>`;
+    } else {
+      const obsGap = S.contradictions.length > 0;
+      frLabel.innerHTML = `FINAL REGIME: <strong style="color:var(--gold)">${S.regime.detected}</strong>` +
+        (S.regime.user !== 'Unknown' ? ` <span style="color:var(--light)">(User: ${S.regime.user}` +
+        (obsGap ? ` — <span class="obs-gap-tag">observability gap active</span>` : '') + `)</span>` : '');
+    }
+  }
+
+  // 4b. Semantic conflict detection + structural conflict
+  S.semanticWarnings = detectSemanticConflicts(v);
+  S.structuralConflict = detectStructuralConflict(v, S.semantic);
+  renderSemanticWarnings(S.semanticWarnings, S.structuralConflict);
+
+  // 5. Holy shit line — regime-adaptive, shorter
+  const hsl = {
+    'Residual':    'It is already failing — just not yet visible.',
+    'Late Plastic':'It is still working — that is the problem.',
+    'Plastic':     'The stability you see is not real — it is borrowed.',
+    'Elastic':     'It is stable — for now. What changes first?'
+  };
+  const hslEl = document.getElementById('holy-shit-line');
+  if (hslEl) { hslEl.textContent = hsl[S.regime.detected] || hsl.Elastic; }
+  const hslWrap = document.getElementById('holy-shit-wrap');
+  if (hslWrap) hslWrap.style.display = 'block';
+  const confTone=confidenceTone(S.confidence);
+  const stCls={'Elastic':'elastic','Plastic':'plastic','Late Plastic':'late-plastic','Residual':'residual'}[S.regime.detected]||'plastic';
+  const confCls=S.confidence==='HIGH'?'conf-high':S.confidence==='MEDIUM'?'conf-med':'conf-low';
+  document.getElementById('state-display').innerHTML=`<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:6px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;padding:4px 12px;display:inline-block;background:rgba(160,120,48,0.1);border:1px solid rgba(160,120,48,0.3);color:var(--gold);">${S.regime.detected}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;" class="${confCls}">${S.confidence} CONFIDENCE</span><span style="font-family:'Crimson Pro',serif;font-size:13px;font-style:italic;color:var(--light);">${confTone.note}</span></div>`;
+
+  // 2. Decision
+  document.getElementById('decision-title').innerHTML=
+    `<span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.3em;color:var(--red);display:block;margin-bottom:8px;">IMMEDIATE ACTION REQUIRED</span>${S.decision.title}`;
+  document.getElementById('decision-items').innerHTML=S.decision.items.map(i=>`<li>${i}</li>`).join('');
+
+  // 3. Failure path
+  document.getElementById('failure-if').textContent=S.failurePath.ifText;
+  document.getElementById('failure-steps').innerHTML=S.failurePath.steps.map((step,i)=>{
+    if(step.free) return `<div class="failure-step"><span class="failure-step-num">STEP ${i+1}</span><div class="failure-step-content">${step.text}</div></div>`;
+    return `<div class="failure-step locked"><span class="failure-step-num">STEP ${i+1}</span><div class="failure-step-content">${step.text}</div><div class="lock-overlay"><span class="lock-badge">🔒 Unlock — $19</span></div></div>`;
+  }).join('');
+
+  // 4. κ Dominance
+  const kd=S.kappaDom;
+  document.getElementById('kappa-level').textContent=kd.level;
+  document.getElementById('kappa-level').className=`kappa-level ${kd.class}`;
+  document.getElementById('kappa-desc').textContent=kd.desc;
+
+  // 5. Contradictions
+  renderContradictions(S.contradictions);
+
+  // 6. Insight
+  document.getElementById('insight-title').textContent=S.insight.title;
+  document.getElementById('insight-body').textContent=S.insight.body;
+
+  // Meters now in score breakdown block (Option C)
+
+  // 8. Gaps
+  const allOk = S.gaps.every(g => g.ok);
+  const gapHtml = S.gaps.map(g=>
+    `<li class="${g.ok?'gap-ok':'gap-bad'}"><span class="gap-icon">${g.ok?'✓':'✗'}</span><span>${g.text}</span></li>`).join('');
+  const gapExtra = allOk
+    ? `<li style="padding:10px 0; border-top:1px solid rgba(139,26,26,0.2); margin-top:6px;"><span class="gap-icon" style="color:var(--amber);">⚠</span><span style="color:rgba(245,210,150,0.85);">No structural gaps detected — risk comes from the system, not the analysis.</span></li>`
+    : '';
+  document.getElementById('gap-list').innerHTML = gapHtml + gapExtra;
+
+  // 9. Challenge
+  document.getElementById('challenge-q').textContent=`"${S.challenge.q}"`;
+  document.getElementById('challenge-body').textContent=S.challenge.body;
+
+  // 10. Report + hash
+  document.getElementById('report-text').textContent=S.report;
+  document.getElementById('hash-display').textContent=S.hash;
+
+  document.getElementById('loading1').classList.remove('active');
+  document.getElementById('btn-analyse').disabled=false;
+  document.getElementById('stage1-output').style.display='block';
+  document.getElementById('tab2').disabled=false;
+  document.getElementById('tab2').classList.add('done');
+  setTimeout(()=>{document.getElementById('score-block').scrollIntoView({behavior:'smooth',block:'start'});},120);
+}
+
+// unlockPremium replaced by unlockPremiumV6 and handlePayment in v6
+
+// ── DEEP AI ───────────────────────────────────────────────────────────────
+async function runDeepAI() {
+  document.getElementById('ai-wrap').style.display = 'block';
+  document.getElementById('ai-loading').classList.add('active');
+  document.getElementById('ai-result').style.display = 'none';
+
+  const prompt = buildAIPrompt(
+    S.values, S.regime, S.confidence, S.gaps, S.semantic, S.signals
+  );
+
+  // Note: direct API calls from browser are blocked by CORS.
+  // The Deep AI button auto-copies the prompt for use in Claude.ai
+  // When running via a server/backend, replace this with a proper proxy call.
+  document.getElementById('ai-loading').classList.remove('active');
+  showAIFallback(prompt);
+}
+
+function showAIFallback(prompt) {
+  // Auto-copy the prompt immediately — no user action needed
+  navigator.clipboard.writeText(prompt).catch(() => {});
+  S.claudeText = prompt;
+
+  document.getElementById('ai-result').style.display = 'block';
+  document.getElementById('ai-text').innerHTML = `
+    <div style="
+      background:rgba(139,26,26,0.12);
+      border:1px solid rgba(139,26,26,0.35);
+      border-left:4px solid var(--red);
+      padding:16px 20px; margin-bottom:20px;
+    ">
+      <span style="
+        font-family:'JetBrains Mono',monospace; font-size:9px;
+        letter-spacing:0.3em; color:var(--red); text-transform:uppercase;
+        display:block; margin-bottom:8px;
+      ">Direct API unavailable from browser</span>
+      <div style="font-family:'Crimson Pro',serif; font-size:16px; color:rgba(245,200,200,0.9); margin-bottom:12px;">
+        Browser security (CORS) blocks direct API calls from local files.
+        Your full DST prompt has been <strong>auto-copied to clipboard</strong>.
+      </div>
+    </div>
+
+    <div style="
+      background:rgba(42,90,42,0.1);
+      border:1px solid rgba(42,90,42,0.35);
+      border-left:4px solid var(--green);
+      padding:16px 20px; margin-bottom:16px;
+    ">
+      <span style="
+        font-family:'JetBrains Mono',monospace; font-size:9px;
+        letter-spacing:0.3em; color:var(--green); text-transform:uppercase;
+        display:block; margin-bottom:8px;
+      ">✓ Prompt auto-copied — one step</span>
+      <div style="font-family:'Crimson Pro',serif; font-size:16px; color:rgba(200,240,200,0.9);">
+        1. Open <a href="https://claude.ai" target="_blank" style="color:var(--gold);">claude.ai</a> in a new tab<br>
+        2. Paste (Ctrl+V / Cmd+V) — the full DST diagnostic prompt is ready<br>
+        3. Send — Claude will run the full DST analysis
+      </div>
+    </div>
+
+    <button onclick="copyAIPrompt()" style="
+      background:transparent; color:var(--gold);
+      font-family:'JetBrains Mono',monospace; font-size:11px;
+      letter-spacing:0.18em; text-transform:uppercase;
+      padding:12px 20px; border:1px solid rgba(160,120,48,0.4);
+      cursor:pointer; width:100%; margin-bottom:12px;
+    ">↗ Copy prompt again</button>
+
+    <button onclick="openClaudeWithPrompt()" style="
+      background:linear-gradient(135deg,var(--deep-gold),var(--gold));
+      color:var(--ink); font-family:'JetBrains Mono',monospace;
+      font-size:11px; letter-spacing:0.18em; text-transform:uppercase;
+      font-weight:500; padding:12px 20px; border:none; cursor:pointer; width:100%;
+    ">Open claude.ai →</button>
+  `;
+}
+
+function copyAIPrompt() {
+  const prompt = buildAIPrompt(
+    S.values, S.regime, S.confidence, S.gaps, S.semantic, S.signals
+  );
+  navigator.clipboard.writeText(prompt).then(() => {
+    alert('DST prompt copied — paste into Claude.ai');
+  });
+}
+
+function openClaudeWithPrompt() {
+  copyAIPrompt();
+  window.open('https://claude.ai', '_blank');
+}
+
+// ── STAGE 2 ───────────────────────────────────────────────────────────────
+function prepareStage2() {
+  const v = S.values;
+  const regime = S.regime;
+
+  // Pain spend — always κ channel language, not Q8 raw text
+  const kappaChannels = v.Q8 && KAPPA_WORDS.some(w => v.Q8.toLowerCase().includes(w))
+    ? v.Q8
+    : 'QE, swap lines, repo facilities, balance sheet expansion, and volatility suppression';
+  document.getElementById('auto-pain').textContent =
+    `Resources spent on ${kappaChannels.substring(0,120)}${kappaChannels.length>120?'...':''} to maintain apparent stability`;
+
+  document.getElementById('auto-cost').textContent =
+    `When ${v.Q2 || 'the system fails'}, the cost is loss of capacity described as: "${v.Q4 || '—'}"`;
+
+  document.getElementById('auto-payer').textContent =
+    v.Q15 ? v.Q15.split('.')[0] : 'The entity identified in Q15';
+
+  document.getElementById('auto-hidden').textContent =
+    `Most valuable hidden variable: ${v.Q11 || 'Θ proxy'} — real tolerance vs lying metric "${v.Q10 || '—'}"`;
+
+  document.getElementById('auto-signal').textContent =
+    `Earlier signal: ${v.Q12 || 'κ-saturation proxy'} — moves before "${v.Q10 || 'the lying metric'}" breaks`;
+
+  document.getElementById('auto-defense').textContent =
+    `DST structural position: regime classification (${regime.mechanical||regime.detected}), lying metric identification, κ-saturation timing, and correct rail selection — before conventional metrics signal anything`;
+}
+
+async function runStage2() {
+  const buyer    = document.getElementById('b-q3').value.trim();
+  const sellable = document.getElementById('b-q9').value.trim();
+  const v = S.values;
+
+  document.getElementById('loading2').classList.add('active');
+  document.querySelector('[onclick="runStage2()"]').disabled = true;
+
+  // First buyer fallback for generic answers
+  const buyerFinal = buyer && buyer.length > 25 ? buyer
+    : `Macro hedge funds, rates desks, and repo/funding desks — feel it first through: ` +
+      `funding stress (${v.Q12||'earliest kappa failure signals'}), collateral rejection, and failed hedging relationships`;
+
+  // Sellable output derived from Q10+Q11+Q12 (locked to signals, not free-form)
+  const derivedProduct = `Real-time kappa-saturation signal system
+Product: API + dashboard + daily/hourly alerts
+Tracks:
+- ${v.Q11 || 'Theta-proxy signal'} (earliest tolerance warning)
+- ${v.Q12 || 'kappa-failure signal'} (earliest saturation signal)
+- ${v.Q10 || 'lying metric'} divergence from real Theta (observability gap index)
+Value: Early detection of regime transition before conventional metrics
+XRPL-anchored daily hash proofs for institutional audit/verifiability` +
+    (sellable && sellable.length > 20 ? `\nUser context: ${sellable}` : '');
+
+  // Pain spend — kappa channels only
+  const kappaPainChannels = v.Q8 && KAPPA_WORDS.some(w => v.Q8.toLowerCase().includes(w))
+    ? v.Q8.substring(0,150) + (v.Q8.length>150?'...':'')
+    : 'QE, swap lines, repo facilities, balance sheet expansion, and volatility suppression';
+
+  const mechLbl = (S.regime.mechanical||S.regime.detected).toUpperCase();
+  const structLbl = (S.regime.structural||S.regime.user||S.regime.detected).toUpperCase();
+  const lockedTxt = S.regime.structuralLocked ? ' (locked outcome)' : '';
+
+  S.oppReport = `DST OPPORTUNITY REPORT
+` + `\u2501`.repeat(36) + `
+
+SYSTEM: ${v.Q1 || '\u2014'}
+MECHANICAL REGIME: ${mechLbl} | STRUCTURAL REGIME: ${structLbl}${lockedTxt}
+CONFIDENCE: ${S.confidence}
+
+EXISTING PAIN SPEND:
+Resources spent on ${kappaPainChannels} just to maintain apparent stability
+
+FAILURE COST:
+${v.Q2 ? `When ${v.Q2}, the cost is loss of: ${v.Q4 || '\u2014'}` : '\u2014'}
+
+FIRST BUYER:
+${buyerFinal}
+
+ULTIMATE PAYER:
+${v.Q15 ? v.Q15.split('.')[0] : '\u2014'}
+
+HIDDEN VALUE VARIABLE:
+${v.Q11 || '\u2014'} \u2014 measuring real tolerance vs lying metric "${v.Q10 || '\u2014'}"
+
+BETTER SIGNAL:
+${v.Q12 || '\u2014'} \u2014 moves before "${v.Q10 || 'the lying metric'}" breaks
+
+SELLABLE OUTPUT (derived from system signals):
+${derivedProduct}
+
+DEFENSIBILITY:
+DST structural position: regime classification (${mechLbl} mechanical / ${structLbl} structural), lying metric identification, \u03ba-saturation timing, correct rail selection \u2014 before conventional metrics signal anything
+
+` + `\u2501`.repeat(36) + `
+DST Compass v8 \xb7 Idan Rephiah \xb7 2026`;
+
+  document.getElementById('opp-text').textContent = S.oppReport;
+  document.getElementById('loading2').classList.remove('active');
+  document.querySelector('[onclick="runStage2()"]').disabled = false;
+  document.getElementById('stage2-output').style.display = 'block';
+  document.getElementById('tab3').disabled = false;
+  document.getElementById('tab3').classList.add('done');
+
+  setTimeout(() => {
+    document.getElementById('stage2-output').scrollIntoView({behavior:'smooth'});
+  }, 100);
+}
+
+// ── STAGE 3 ───────────────────────────────────────────────────────────────
+async function buildFinalReport() {
+  const full = S.report + '\n\n' + S.oppReport +
+    (S.claudeText ? '\n\nCLAUDE AI ANALYSIS:\n' + S.claudeText : '');
+  const fHash = await sha256(full);
+  document.getElementById('final-report').textContent = full;
+  document.getElementById('final-hash').textContent = fHash;
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+function switchTab(n) {
+  document.querySelectorAll('.stage-panel').forEach((p,i) =>
+    p.classList.toggle('active', i === n-1));
+  document.querySelectorAll('.stage-tab').forEach((t,i) =>
+    t.classList.toggle('active', i === n-1));
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function copyText(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard'));
+}
+</script>
+</body>
+</html>

@@ -1,20 +1,25 @@
-// dst-scanner.js — v4
+// dst-scanner.js — v4.5
 // DST Structural Intelligence Engine
 //
+// v4.5 additions:
+//   - κ_i expiration contract: @dst-kappa-i: expires YYYY-MM-DD annotation
+//     Active κ_i → 0 penalty, listed in Accept column
+//     Expired κ_i → -15 penalty, reclassified to κ_a, listed in Fix column
+//   - DST_DATA_SCALE: σ amplifiers scaled by environment mass
+//     small=×0.5 · medium=×1.0 · large=×2.0 · hyperscale=×4.0
+//   - AST parallel engine (Babel): two proof-of-concept rules alongside regex
+//     Rule 1 σ: N+1 — await inside loop body (AST-accurate)
+//     Rule 2 κ_a: silent catch — CatchClause with no throw (AST-accurate)
+//     AST runs when @babel/parser available; regex is always fallback
+//
 // v4 additions (math-grounded):
-//   - Θ naming: score renamed to Θ (real remaining capacity) throughout output
-//   - κ classification: every finding typed as κ_a (fix) / κ_c (mitigate) / κ_i (accept)
-//   - Observability gap: Gap = apparent health − Θ  (how much metrics are lying)
-//   - σ_eff: effective stress after displacement  σ_eff = σ_raw − κ_total
-//   - κ saturation: κ_used / κ_max estimate  (how full the displacement budget is)
-//   - dΘ/dt trajectory: rate + acceleration from trend history
-//   - Regime prediction: sprints until next regime transition
-//   - Rewrite signal: Proposition 5 trigger when local fixes become infeasible
-//   - Three action lists: Fix (κ_a) / Mitigate (κ_c) / Accept (κ_i)
+//   - Θ naming, κ classification, observability gap, σ_eff, κ saturation
+//   - dΘ/dt trajectory, regime prediction, rewrite signal, three action lists
 //
 // Locked constants:
 //   REWRITE_THRESHOLD = 30   (Θ below this)
 //   REWRITE_DECAY     = -2   (dΘ/dt below this per PR)
+//   KAPPA_I_EXPIRED_PENALTY = -15
 //
 // DST Framework: ρ heals · κ hides · σ kills
 // SSRN 6434119 · Idan Rephiah · 2026
@@ -42,9 +47,28 @@ const MAX_PR_FINDINGS = 10;
 const TREND_FILE      = '.dst-trend.json';
 
 // ── V4 LOCKED CONSTANTS ───────────────────────────────────────────────────
-const REWRITE_THRESHOLD = 30;   // Θ below this triggers Proposition 5 signal
-const REWRITE_DECAY     = -2;   // dΘ/dt below this triggers Proposition 5 signal
-const MAX_ACTION_LIST   = 5;    // Max findings per action list in output
+const REWRITE_THRESHOLD = 30;
+const REWRITE_DECAY     = -2;
+const MAX_ACTION_LIST   = 5;
+
+// ── V4.5 CONSTANTS ────────────────────────────────────────────────────────
+const KAPPA_I_EXPIRED_PENALTY = -15; // expired κ_i reclassified → κ_a
+
+// DST_DATA_SCALE: σ amplifiers scaled by environment mass
+// σ is not constant — same N+1 on admin dashboard vs checkout flow ≠ same risk
+const SIGMA_SCALE = (() => {
+  const s = (process.env.DST_DATA_SCALE || 'medium').toLowerCase();
+  return { small:0.5, medium:1.0, large:2.0, hyperscale:4.0 }[s] || 1.0;
+})();
+
+// Try to load @babel/parser for AST engine (optional — regex always fallback)
+let babelParser = null, babelTraverse = null;
+try {
+  babelParser   = require('@babel/parser');
+  babelTraverse = require('@babel/traverse').default;
+} catch {
+  // AST engine unavailable — regex engine handles all detection
+}
 
 // ── ROI MULTIPLIERS — configurable via env vars ───────────────────────────
 const HOURS = {
@@ -233,6 +257,109 @@ function buildTrendSummary(currentScore, trend) {
     avgDelta,
     prCount: recentDeltas.length,
   };
+}
+
+// ── V4.5: AST PARALLEL ENGINE ─────────────────────────────────────────────
+// Runs alongside regex when @babel/parser is available.
+// AST understands structure — regex counts words.
+// Two proof-of-concept rules:
+//   Rule 1 σ: N+1 — await inside loop body (flow-accurate)
+//   Rule 2 κ_a: silent catch — CatchClause with no throw/rethrow
+//
+// When AST finds something regex also found: AST result wins (more precise).
+// When AST finds something regex missed: additional finding added.
+// Regex always runs as fallback — zero regression risk.
+function detectJSWithAST(content, filePath) {
+  const findings = [];
+  if (!babelParser || !babelTraverse) return findings;
+
+  let ast;
+  try {
+    ast = babelParser.parse(content, {
+      sourceType: 'unambiguous',
+      plugins: ['typescript', 'jsx', 'decorators-legacy', 'classProperties'],
+      errorRecovery: true,
+    });
+  } catch { return findings; } // parse failure → regex handles it
+
+  const lines = content.split('\n');
+
+  babelTraverse(ast, {
+    // Rule 1 σ: N+1 — await fetch/db call inside a loop body
+    // Regex approximates this. AST knows the exact containment.
+    'ForStatement|ForInStatement|ForOfStatement|WhileStatement'(nodePath) {
+      const body = nodePath.node.body;
+      nodePath.traverse({
+        AwaitExpression(awaitPath) {
+          const callee = awaitPath.node.argument;
+          if (!callee) return;
+
+          // Check if it's a db/fetch call
+          const callStr = content.slice(callee.start, callee.end);
+          const isDbCall = /\b(?:fetch|find|get|query|select|load|findOne|findAll|findById)\b/i.test(callStr);
+          if (!isDbCall) return;
+
+          // Confirm it's actually inside the loop body (not a sibling)
+          let cur = awaitPath;
+          while (cur && cur.node !== body) {
+            if (cur.parent === nodePath.node) return; // not inside body
+            cur = cur.parentPath;
+          }
+
+          const line = awaitPath.node.loc?.start.line || 0;
+          findings.push(make('n_plus_one', line,
+            lines[line - 1]?.trim().substring(0, 70) || 'await inside loop',
+            'AST: DB/fetch call inside loop body — confirmed N+1 σ amplifier',
+            { astDetected: true }
+          ));
+        }
+      });
+    },
+
+    // Rule 2 κ_a: silent catch — CatchClause with no throw or error propagation
+    // Regex catches many of these but has false positives on formatting.
+    // AST checks the actual block structure.
+    CatchClause(nodePath) {
+      const body = nodePath.node.body;
+      if (!body || !body.body) return;
+
+      const stmts = body.body;
+      if (stmts.length === 0) {
+        // Completely empty catch {}
+        const line = nodePath.node.loc?.start.line || 0;
+        findings.push(make('error_swallowing', line,
+          lines[line - 1]?.trim().substring(0, 70) || 'catch {}',
+          'AST: Empty catch block — error disappears completely',
+          { astDetected: true }
+        ));
+        return;
+      }
+
+      // Check if any statement throws, rejects, or returns an error
+      const hasRealHandler = stmts.some(stmt => {
+        const s = content.slice(stmt.start, stmt.end);
+        return /\bthrow\b|\breject\b|\breturn.*[Ee]rror|\bemit\b/.test(s);
+      });
+
+      if (!hasRealHandler) {
+        // Only console.log/warn — swallowing
+        const hasConsole = stmts.some(stmt => {
+          const s = content.slice(stmt.start, stmt.end);
+          return /\bconsole\s*\.\s*(?:log|warn|error)\b/.test(s);
+        });
+        if (hasConsole) {
+          const line = nodePath.node.loc?.start.line || 0;
+          findings.push(make('error_swallowing', line,
+            lines[line - 1]?.trim().substring(0, 70) || 'catch (e) { console }',
+            'AST: Catch logs but does not throw — error masked, caller unaware',
+            { astDetected: true }
+          ));
+        }
+      }
+    },
+  });
+
+  return findings;
 }
 
 // ── JS DETECTOR ───────────────────────────────────────────────────────────
@@ -507,15 +634,115 @@ function detectPython(content, filePath) {
 }
 
 // ── HELPER ────────────────────────────────────────────────────────────────
-function make(type, line, code, message) {
+function make(type, line, code, message, overrides={}) {
   const w = W[type] || { score:0, cat:'kappa', sev:'low' };
-  return { type, category:w.cat, line, code, impact:w.score, severity:w.sev, message, fix:FIX[type]||'' };
+  let impact = w.score;
+
+  // V4.5: σ amplifiers scaled by DST_DATA_SCALE (environmental mass)
+  // σ is not constant — N+1 on hyperscale is 4× worse than on small
+  if (w.cat === 'sigma') impact = Math.round(impact * SIGMA_SCALE * 10) / 10;
+
+  return {
+    type,
+    category: overrides.category || w.cat,
+    line, code,
+    impact: overrides.impact ?? impact,
+    severity: w.sev,
+    message,
+    fix: FIX[type] || '',
+    ...overrides,
+  };
+}
+
+// ── V4.5: κ_i EXPIRATION CONTRACT ────────────────────────────────────────
+// Scans for: // @dst-kappa-i: expires YYYY-MM-DD
+// Active (future date)  → 0 penalty, listed in Accept column
+// Expired (past date)   → -15 penalty, reclassified to κ_a, listed in Fix
+//
+// This makes tech debt enforceable. Promises have timestamps and consequences.
+// The CI gate becomes governance, not just diagnosis.
+const KAPPA_I_ANNOTATION = /@dst-kappa-i:\s*expires\s+(\d{4}-\d{2}-\d{2})/i;
+
+function detectKappaI(content, filePath) {
+  const findings = [];
+  const today    = new Date().toISOString().slice(0, 10);
+  const lines    = content.split('\n');
+
+  for (let i = 0; i < lines.length; i++) {
+    const m = KAPPA_I_ANNOTATION.exec(lines[i]);
+    if (!m) continue;
+
+    const expiresDate = m[1];
+    const expired     = expiresDate < today;
+    const nextLine    = lines[i + 1]?.trim().substring(0, 80) || 'annotated tradeoff';
+
+    if (expired) {
+      // Expired κ_i → violent reclassification to κ_a
+      findings.push(make('todo_comment', i + 1,
+        `@dst-kappa-i expired ${expiresDate}`,
+        `Intentional tradeoff expired — now accumulated debt. Was: ${nextLine}`,
+        {
+          category: 'kappa',
+          kappaType: 'accumulated',
+          impact: KAPPA_I_EXPIRED_PENALTY,
+          severity: 'high',
+          expiredKappaI: true,
+          expiresDate,
+          fix: `This κ_i tradeoff expired on ${expiresDate}. Treat as κ_a — fix it this sprint or extend with a new expiration date.`,
+        }
+      ));
+    } else {
+      // Active κ_i → 0 penalty, listed in Accept column with expiration date
+      findings.push(make('todo_comment', i + 1,
+        `@dst-kappa-i expires ${expiresDate}`,
+        `Active intentional tradeoff — expires ${expiresDate}. Context: ${nextLine}`,
+        {
+          category: 'kappa_i',
+          kappaType: 'intentional',
+          impact: 0,
+          severity: 'info',
+          activeKappaI: true,
+          expiresDate,
+          fix: `Documented tradeoff with expiration. Review before ${expiresDate} — extend or eliminate.`,
+        }
+      ));
+    }
+  }
+  return findings;
 }
 
 // ── FILE / DIR SCANNERS ───────────────────────────────────────────────────
 function detectPatterns(content, filePath) {
-  if (PY_EXTS.has(path.extname(filePath))) return detectPython(content, filePath);
-  return detectJS(content, filePath);
+  const isPython = PY_EXTS.has(path.extname(filePath));
+
+  // Base detection (regex engine — always runs)
+  const base = isPython
+    ? detectPython(content, filePath)
+    : detectJS(content, filePath);
+
+  // V4.5: κ_i expiration contract (all file types)
+  const kappaIFindings = detectKappaI(content, filePath);
+
+  // V4.5: AST parallel engine (JS/TS only, when babel available)
+  const astFindings = (!isPython && babelParser)
+    ? detectJSWithAST(content, filePath)
+    : [];
+
+  // Merge: AST findings deduplicate regex findings by line proximity (±2 lines)
+  // AST result wins when both detect the same pattern on the same line.
+  const regexLines = new Set(base.findings.map(f => `${f.type}:${f.line}`));
+  const dedupedAST = astFindings.filter(f => {
+    // Keep AST finding if regex didn't find it within ±2 lines
+    for (let d = -2; d <= 2; d++) {
+      if (regexLines.has(`${f.type}:${f.line + d}`)) return false;
+    }
+    return true;
+  });
+
+  return {
+    findings: [...base.findings, ...kappaIFindings, ...dedupedAST],
+    rhoFound: base.rhoFound,
+  };
 }
 
 function scanFile(filePath) {
@@ -739,24 +966,54 @@ function getKappaAction(kappaType) {
 
 // ── V4: THREE ACTION LISTS ────────────────────────────────────────────────
 function buildActionLists(allFindings) {
-  const fix      = [];  // κ_a: accumulated — FIX
+  const fix      = [];  // κ_a: accumulated — FIX (includes expired κ_i)
   const mitigate = [];  // κ_c: conscripted — MITIGATE
-  const accept   = [];  // κ_i: intentional — ACCEPT (none auto-detected, shown for completeness)
+  const accept   = [];  // κ_i: intentional — ACCEPT (from @dst-kappa-i annotations)
   const amplify  = [];  // σ: stress amplifiers — RESOLVE URGENTLY
 
-  // Group by type first
+  // V4.5: Pull active κ_i annotations directly — they have their own column
+  const activeKappaI = allFindings.filter(f => f.activeKappaI);
+  const expiredKappaI = allFindings.filter(f => f.expiredKappaI);
+
+  // Group remaining findings by type
   const grouped = {};
-  for (const f of allFindings.filter(f => f.category !== 'security')) {
+  for (const f of allFindings.filter(f =>
+    f.category !== 'security' && !f.activeKappaI
+  )) {
     const kt = classifyKappa(f);
-    if (!grouped[f.type]) grouped[f.type] = { type:f.type, kappaType:kt, occurrences:0, scoreImpact:0, fix:f.fix, severity:f.severity };
-    grouped[f.type].occurrences++;
-    grouped[f.type].scoreImpact += f.impact;
+    const key = f.expiredKappaI ? `expired_ki_${f.line}` : f.type;
+    if (!grouped[key]) grouped[key] = {
+      type: f.type,
+      kappaType: kt,
+      occurrences: 0,
+      scoreImpact: 0,
+      fix: f.fix,
+      severity: f.severity,
+      expiredKappaI: f.expiredKappaI || false,
+      expiresDate: f.expiresDate,
+    };
+    grouped[key].occurrences++;
+    grouped[key].scoreImpact += f.impact;
   }
 
   for (const item of Object.values(grouped).sort((a,b) => a.scoreImpact - b.scoreImpact)) {
-    if (item.kappaType === 'sigma')       amplify.push(item);
+    if (item.kappaType === 'sigma')            amplify.push(item);
     else if (item.kappaType === 'conscripted') mitigate.push(item);
-    else                                  fix.push(item);
+    else                                       fix.push(item);
+  }
+
+  // Accept list: only real annotated κ_i (with expiration dates)
+  for (const f of activeKappaI) {
+    accept.push({
+      type: 'kappa_i_active',
+      kappaType: 'intentional',
+      occurrences: 1,
+      scoreImpact: 0,
+      expiresDate: f.expiresDate,
+      fix: f.fix,
+      code: f.code,
+      severity: 'info',
+    });
   }
 
   return {
@@ -764,9 +1021,11 @@ function buildActionLists(allFindings) {
     mitigate: mitigate.slice(0, MAX_ACTION_LIST),
     accept:   accept.slice(0, MAX_ACTION_LIST),
     amplify:  amplify.slice(0, MAX_ACTION_LIST),
-    fixTotal:      fix.length,
-    mitigateTotal: mitigate.length,
-    amplifyTotal:  amplify.length,
+    fixTotal:        fix.length,
+    mitigateTotal:   mitigate.length,
+    acceptTotal:     accept.length,
+    amplifyTotal:    amplify.length,
+    expiredKappaICount: expiredKappaI.length,
   };
 }
 

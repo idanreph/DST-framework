@@ -1,4 +1,4 @@
-<!DOCTYPE html>    
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -117,6 +117,53 @@ pre.prompt .cmnt{color:var(--muted)}
 .footer{border-top:1px solid var(--border);padding:20px 40px;display:flex;align-items:center;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
 .footer a{color:var(--dim);text-decoration:none}
 .footer a:hover{color:var(--green)}
+
+/* INTRO BLOCK */
+.intro-block{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1100px;margin:0 auto 0;padding:32px 40px 24px}
+@media(max-width:768px){.intro-block{grid-template-columns:1fr}}
+.intro-col{}
+.intro-head{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.intro-text{font-size:13px;color:var(--dim);line-height:1.7;margin-bottom:10px}
+.intro-q{font-family:'IBM Plex Mono',monospace;font-size:12px;padding:2px 6px;border-radius:3px}
+.bad-q{color:var(--red);background:var(--red-bg)}
+.good-q{color:var(--green);background:var(--green-bg)}
+.var-grid{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.var-row{display:flex;align-items:baseline;gap:10px;font-size:12px}
+.var-sym{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;min-width:24px}
+.var-name{font-weight:500;min-width:50px;color:var(--text)}
+.var-desc{color:var(--dim)}
+.eq-inline{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--text);margin-bottom:6px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;display:inline-block}
+.eq-rule{font-size:11px;color:var(--muted);margin-top:6px}
+
+/* WHY BLOCK */
+.why-block{display:flex;align-items:flex-start;gap:16px;max-width:1100px;margin:0 auto 40px;padding:0 40px}
+@media(max-width:768px){.why-block{flex-direction:column}}
+.why-col{flex:1;padding:14px 16px;border:1px solid var(--border);border-radius:8px;background:var(--bg2)}
+.why-head{font-size:11px;font-weight:500;margin-bottom:8px;font-family:'IBM Plex Mono',monospace}
+.bad-head{color:var(--red)}
+.good-head{color:var(--green)}
+.why-item{font-size:12px;color:var(--dim);line-height:1.6}
+.why-arrow{font-size:20px;color:var(--muted);padding-top:22px;flex-shrink:0}
+
+/* SECTION DIVIDERS */
+.section-break{max-width:1100px;margin:0 auto;padding:48px 40px 8px;border-top:1px solid var(--border)}
+.section-break h2{font-size:20px;font-weight:600;margin-bottom:6px}
+.section-break p{font-size:13px;color:var(--dim);max-width:620px;line-height:1.6}
+.section-note{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:32px;padding:0 40px;max-width:1100px;margin-left:auto;margin-right:auto}
+
+/* PRINCIPLE BOX */
+.principle{max-width:1100px;margin:0 auto 48px;padding:0 40px}
+.principle-box{border:1px solid var(--border2);border-radius:8px;padding:20px 24px;background:var(--bg2)}
+.principle-box h4{font-size:13px;font-weight:500;margin-bottom:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted)}
+.principle-eq{font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--text);margin-bottom:8px}
+.principle-sub{font-size:12px;color:var(--dim);line-height:1.6}
+
+/* FINAL STATEMENT */
+.final-statement{max-width:900px;margin:0 auto;padding:48px 40px 60px;text-align:center}
+.final-statement h2{font-size:22px;font-weight:600;margin-bottom:12px;line-height:1.3}
+.final-statement p{font-size:14px;color:var(--dim);line-height:1.7;margin-bottom:8px}
+.final-tagline{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);margin-top:24px}
+
 </style>
 </head>
 <body>
@@ -127,11 +174,48 @@ pre.prompt .cmnt{color:var(--muted)}
 </div>
 
 <div class="hero">
-  <h1>The same code.<br><em>Completely different trajectory.</em></h1>
-  <p>DST doesn't make code prettier. It makes the invisible visible — and shows exactly what each pattern costs your system's future capacity.</p>
+  <h1>Most systems don't fail<br>when they <em>break.</em></h1>
+  <p>They fail while still working.</p>
   <div class="score-row">
     <div class="score-pill bad"><div class="dot" style="background:var(--red)"></div>Before DST — Θ declining</div>
     <div class="score-pill good"><div class="dot" style="background:var(--green)"></div>After DST — dΘ/dt &gt; 0</div>
+  </div>
+</div>
+
+<!-- DST INTRO ─────────────────────────────────────────────────────── -->
+<div class="intro-block">
+  <div class="intro-col">
+    <div class="intro-head">What is DST?</div>
+    <p class="intro-text">DST (Declining Stress Threshold) is a framework that shows how systems degrade over time, why they appear stable while getting worse, and when they will stop being able to handle change.</p>
+    <p class="intro-text">Instead of asking <span class="intro-q bad-q">"Does this work?"</span> — DST asks <span class="intro-q good-q">"Is this system getting stronger or weaker over time?"</span></p>
+  </div>
+  <div class="intro-col">
+    <div class="intro-head">The Model</div>
+    <div class="var-grid">
+      <div class="var-row"><span class="var-sym" style="color:var(--green)">Θ</span><span class="var-name">Theta</span><span class="var-desc">Real remaining capacity</span></div>
+      <div class="var-row"><span class="var-sym" style="color:var(--red)">σ</span><span class="var-name">Sigma</span><span class="var-desc">Stress that amplifies problems</span></div>
+      <div class="var-row"><span class="var-sym" style="color:var(--amber)">κ</span><span class="var-name">Kappa</span><span class="var-desc">Masking that hides damage</span></div>
+      <div class="var-row"><span class="var-sym" style="color:var(--blue)">ρ</span><span class="var-name">Rho</span><span class="var-desc">Real healing</span></div>
+    </div>
+    <div class="eq-inline">dΘ/dt = <span style="color:var(--blue)">ρ</span> − σ_eff</div>
+    <div class="eq-rule"><span class="good-q">ρ &gt; σ</span> → system improves &nbsp;·&nbsp; <span class="bad-q">ρ &lt; σ</span> → declining (even if still working)</div>
+  </div>
+</div>
+
+<div class="why-block">
+  <div class="why-col">
+    <div class="why-head bad-head">Teams measure what is easy</div>
+    <div class="why-item">performance · uptime · response time</div>
+  </div>
+  <div class="why-arrow">→</div>
+  <div class="why-col">
+    <div class="why-head bad-head">Systems fail because of what is hidden</div>
+    <div class="why-item">technical debt · retry loops · silent failures · unbounded growth</div>
+  </div>
+  <div class="why-arrow">→</div>
+  <div class="why-col">
+    <div class="why-head good-head">DST makes that visible</div>
+    <div class="why-item">Θ, σ_eff, κ saturation, observability gap, regime prediction</div>
   </div>
 </div>
 
@@ -546,6 +630,211 @@ pre.prompt .cmnt{color:var(--muted)}
       </tbody>
     </table>
   </div>
+
+
+<!-- SECTION 2: κ IS A VECTOR ──────────────────────────────────────── -->
+<div class="section-break" style="max-width:1100px;margin:0 auto;padding:48px 40px 8px;border-top:1px solid var(--border)">
+  <h2 style="font-size:20px;font-weight:600;margin-bottom:6px">κ is not scalar — it is a vector</h2>
+  <p style="font-size:13px;color:var(--dim);max-width:620px;line-height:1.6">Not all masking is neglect. DST without this distinction becomes "refactor everything" — which is impossible. Some displacement is necessary. The difference is whether it is conscious.</p>
+</div>
+<div class="section-note">κ = κ_a (accumulated) + κ_c (conscripted) + κ_i (intentional)</div>
+
+<div class="examples" style="padding-top:0">
+
+  <!-- EXAMPLE 7: κ_i CIRCUIT BREAKER -->
+  <div class="example">
+    <div class="example-header">
+      <span class="example-num">07</span>
+      <span class="example-title">Intentional tradeoff — the circuit breaker</span>
+      <span class="example-tag" style="background:rgba(163,120,250,.08);color:#a78bfa;border:1px solid rgba(163,120,250,.2)">κ_i intentional</span>
+    </div>
+    <div class="split">
+      <div class="panel before">
+        <div class="panel-header">
+          <span class="panel-label">BEFORE — σ unbounded</span>
+          <span class="panel-score">Θ = 9/100</span>
+        </div>
+        <pre><code><span class="comment">// API → Direct DB — no protection</span>
+<span class="keyword">async function</span> <span class="fn">handleRequest</span>(req) {
+<span class="sigma">  <span class="keyword">const</span> result = <span class="keyword">await</span> db.query(   <span class="comment">// σ</span>
+    <span class="string">`SELECT * FROM orders            <span class="comment">// direct</span>
+     WHERE user=${req.userId}`</span>   <span class="comment">// no gate</span>
+  );
+  <span class="keyword">return</span> result;
+  <span class="comment">// traffic spike → DB overload</span>
+  <span class="comment">// DB overload → cascade failure</span>
+  <span class="comment">// Θ → 0</span>
+</span>}
+
+<span class="comment">// No circuit breaker
+// No fallback
+// No failure surface control</span></code></pre>
+      </div>
+      <div class="panel after">
+        <div class="panel-header">
+          <span class="panel-label">AFTER — κ_i + ρ controlled</span>
+          <span class="panel-score">Θ = 78/100</span>
+        </div>
+        <pre><code><span class="comment">// @dst-kappa-i: expires 2027-06-01</span>
+<span class="comment">// Circuit breaker adds complexity (κ_i)</span>
+<span class="comment">// Justified: prevents cascade failure</span>
+
+<span class="keyword">const</span> breaker = <span class="keyword">new</span> CircuitBreaker(db.query, {
+<span class="rho">  timeout: 3000,      <span class="comment">// ρ: bounded wait</span>
+  errorThreshold: 50, <span class="comment">// ρ: explicit gate</span>
+  resetTimeout: 10000 <span class="comment">// ρ: recovery path</span>
+});
+
+<span class="keyword">async function</span> <span class="fn">handleRequest</span>(req) {
+<span class="rho">  <span class="keyword">try</span> {
+    <span class="keyword">return await</span> breaker.fire(req.userId);
+  } <span class="keyword">catch</span> (err) {
+    <span class="keyword">if</span> (breaker.opened)
+      <span class="keyword">return</span> cache.get(req.userId); <span class="comment">// ρ</span>
+    <span class="keyword">throw</span> err; <span class="comment">// ρ: visible failure</span>
+  }
+</span>}</code></pre>
+      </div>
+    </div>
+    <div class="diagnosis">
+      <div class="diag-row"><span class="diag-icon" style="color:#a78bfa">κ_i</span><span class="diag-text"><strong>Circuit breaker is κ_i — intentional, documented, controlled.</strong> It adds complexity. That complexity is the cost of bounded failure. The annotation <code>@dst-kappa-i: expires 2027-06-01</code> makes it a contract — CI will reclassify it as κ_a if not renewed.</span></div>
+      <div class="diag-row"><span class="diag-icon" style="color:var(--green)">ρ</span><span class="diag-text"><strong>σ eliminated.</strong> Traffic spike → circuit opens → cache serves → DB protected → system stays operational. Failure surface is bounded and controlled.</span></div>
+    </div>
+    <div class="delta">
+      <span class="delta-arrow">↑</span>
+      <span class="delta-text">Θ: 9 → 78 · <strong>+69 pts</strong> · DST is not about perfection. It is about <strong>conscious physics</strong>. Not all κ is bad — the difference is whether it is unconscious (κ_a) or deliberate (κ_i).</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- SECTION 3: OBSERVABILITY GAP ──────────────────────────────────── -->
+<div class="section-break" style="max-width:1100px;margin:0 auto;padding:48px 40px 8px;border-top:1px solid var(--border)">
+  <h2 style="font-size:20px;font-weight:600;margin-bottom:6px">The lying metric — y(t) ≠ Θ(t)</h2>
+  <p style="font-size:13px;color:var(--dim);max-width:620px;line-height:1.6">Systems rarely fail silently. They fail while dashboards remain green. The metric you measure (y) is not the capacity you actually have (Θ). That gap is not noise — it is mechanically produced by κ.</p>
+</div>
+<div class="section-note">Gap = Apparent health − Θ (real capacity) · The scanner measures this gap on every PR</div>
+
+<div class="principle">
+  <div class="principle-box">
+    <h4>Two real examples — same principle</h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:8px">
+      <div>
+        <div style="font-size:11px;font-weight:500;color:var(--red);font-family:'IBM Plex Mono',monospace;margin-bottom:8px">Example 05 — Unbounded Cache</div>
+        <div style="font-size:12px;color:var(--dim);line-height:1.6">
+          <span style="color:var(--muted)">y(t):</span> API response time → <span style="color:var(--green)">stable at 20ms</span><br>
+          <span style="color:var(--muted)">Θ(t):</span> Available RAM → <span style="color:var(--red)">collapsing toward zero</span><br><br>
+          The system looks fast while consuming its own future. Dashboard green until server crash.
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:500;color:var(--red);font-family:'IBM Plex Mono',monospace;margin-bottom:8px">Example 06 — Async Collapse</div>
+        <div style="font-size:12px;color:var(--dim);line-height:1.6">
+          <span style="color:var(--muted)">y(t):</span> Frontend shows → <span style="color:var(--amber)">"Loading…"</span><br>
+          <span style="color:var(--muted)">Θ(t):</span> Event loop → <span style="color:var(--red)">permanently blocked</span><br><br>
+          System appears active while structurally dead. Observable stability ≠ real capacity.
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text)">
+      y(t) ≠ Θ(t) &nbsp;·&nbsp; DST exists to measure what the system <em>is</em> — not what it <em>reports</em>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 4: AI AS THERMODYNAMIC GOVERNOR ────────────────────────── -->
+<div class="section-break" style="max-width:1100px;margin:0 auto;padding:48px 40px 8px;border-top:1px solid var(--border)">
+  <h2 style="font-size:20px;font-weight:600;margin-bottom:6px">AI as a thermodynamic governor</h2>
+  <p style="font-size:13px;color:var(--dim);max-width:620px;line-height:1.6">The DST coding prompt is not a style guide. It is a control system. One rule transforms AI from a code generator into a system stabilizer.</p>
+</div>
+<div class="examples" style="padding-top:16px;padding-bottom:0">
+  <div class="example" style="margin-bottom:32px">
+    <div class="example-header">
+      <span class="example-num">08</span>
+      <span class="example-title">The circuit breaker rule — what AI writes without DST vs with</span>
+      <span class="example-tag tag-sigma">σ → ρ</span>
+    </div>
+    <div class="split">
+      <div class="panel before">
+        <div class="panel-header">
+          <span class="panel-label">AI WITHOUT DST — σ amplifier</span>
+          <span class="panel-score">Θ = 11/100</span>
+        </div>
+        <pre><code><span class="comment">// What AI writes by default</span>
+<span class="keyword">async function</span> <span class="fn">callService</span>(data) {
+<span class="sigma">  <span class="keyword">let</span> retries = 0;
+  <span class="keyword">while</span> (retries < 10) {    <span class="comment">// σ</span>
+    <span class="keyword">try</span> {
+      <span class="keyword">return await</span> service.call(data);
+    } <span class="keyword">catch</span> (e) {
+      retries++;             <span class="comment">// κ_a</span>
+      <span class="keyword">await</span> sleep(1000);
+    }
+  }
+  <span class="comment">// Service down → 10s of hammering</span>
+  <span class="comment">// Host capacity consumed</span>
+  <span class="comment">// Failure: amplified, not handled</span>
+</span>}</code></pre>
+      </div>
+      <div class="panel after">
+        <div class="panel-header">
+          <span class="panel-label">AI WITH DST PROMPT — ρ response</span>
+          <span class="panel-score">Θ = 86/100</span>
+        </div>
+        <pre><code><span class="comment">// What AI writes with the circuit breaker rule</span>
+<span class="keyword">async function</span> <span class="fn">callService</span>(data) {
+<span class="rho">  <span class="keyword">if</span> (!circuit.isHealthy()) {   <span class="comment">// ρ: check first</span>
+    <span class="keyword">return</span> {
+      status: 503,
+      message: <span class="string">'Service shedding load'</span>,
+      retryAfter: circuit.resetIn() <span class="comment">// ρ</span>
+    };
+  }
+
+  <span class="keyword">try</span> {
+    <span class="keyword">return await</span> circuit.call(     <span class="comment">// ρ: bounded</span>
+      () => service.call(data),
+      { timeout: 2000 }
+    );
+  } <span class="keyword">catch</span> (err) {
+    circuit.recordFailure();       <span class="comment">// ρ: visible</span>
+    <span class="keyword">throw</span> <span class="keyword">new</span> ServiceError(err);  <span class="comment">// ρ: explicit</span>
+  }
+</span>}</code></pre>
+      </div>
+    </div>
+    <div class="diagnosis">
+      <div class="diag-row"><span class="diag-icon" style="color:var(--amber)">σ</span><span class="diag-text"><strong>Without DST</strong> — AI writes retry loops by default. Unresponsive service → 10 seconds of hammering → host capacity consumed → cascade amplified. AI makes σ worse.</span></div>
+      <div class="diag-row"><span class="diag-icon" style="color:var(--green)">ρ</span><span class="diag-text"><strong>With DST circuit breaker rule</strong> — AI checks health first, sheds load with 503, records failure explicitly. Service down → host protected → failure visible → system stabilized. AI becomes a governor.</span></div>
+    </div>
+    <div class="delta">
+      <span class="delta-arrow">↑</span>
+      <span class="delta-text">Θ: 11 → 86 · <strong>+75 pts</strong> · The rule: <em>"If a required system is unresponsive, DO NOT write an infinite retry loop. Write a load-shedding response (HTTP 503) to preserve host capacity."</em></span>
+    </div>
+  </div>
+</div>
+
+<!-- FINAL STATEMENT ─────────────────────────────────────────────── -->
+<div class="final-statement">
+  <h2>Three things to understand after this page</h2>
+  <p style="color:var(--dim);font-size:14px;line-height:1.7;max-width:560px;margin:0 auto 24px">
+    <strong style="color:var(--text)">1. Not all problems should be fixed.</strong><br>
+    Some must be contained, bounded, and documented. κ_i is not weakness — it is physics.
+  </p>
+  <p style="color:var(--dim);font-size:14px;line-height:1.7;max-width:560px;margin:0 auto 24px">
+    <strong style="color:var(--text)">2. Stability is not proof of health.</strong><br>
+    If κ is high — stability = borrowed time. y(t) ≠ Θ(t).
+  </p>
+  <p style="color:var(--dim);font-size:14px;line-height:1.7;max-width:560px;margin:0 auto 24px">
+    <strong style="color:var(--text)">3. Every system has a trajectory.</strong><br>
+    The only real question is: Is Θ increasing or decreasing?
+  </p>
+  <div style="margin-top:32px;padding:20px 32px;border:1px solid var(--border2);border-radius:8px;display:inline-block;background:var(--bg2)">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--dim);margin-bottom:8px">The core insight</div>
+    <div style="font-size:16px;font-weight:500;color:var(--text);line-height:1.5">Systems do not fail when they break.<br>They fail when they can no longer absorb change.</div>
+  </div>
+  <div class="final-tagline">ρ heals · κ hides · σ kills · SSRN 6434119 · Idan Rephiah · 2026</div>
+</div>
 
 <!-- DST AI TRAINING PROMPT -->
 <div class="training">

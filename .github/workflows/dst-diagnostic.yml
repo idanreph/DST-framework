@@ -108,7 +108,7 @@ jobs:
           DST_HOURS_GOD:      ${{ vars.DST_HOURS_GOD        || '8' }}
           DST_HOURS_STATE:    ${{ vars.DST_HOURS_STATE      || '3' }}
           DST_HOURS_NPLUS:    ${{ vars.DST_HOURS_NPLUS      || '5' }}
-        run: node dst-action.js
+        run: node tools/dst-action.js
 
       # Save trend data for next run (enables dΘ/dt calculation)
       - name: Save DST trend artifact

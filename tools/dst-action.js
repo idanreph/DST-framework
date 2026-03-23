@@ -1,4 +1,4 @@
-// dst-action.js — v4
+// dst-action.js — v4.5
 // DST GitHub Action runner
 //
 // v4 additions (math-grounded output):
@@ -141,12 +141,20 @@ function buildComment(result) {
     c += `${kappaSat.used} κ findings / ~${kappaSat.max} estimated capacity = **${kappaSat.saturation}% full**\n\n`;
   }
 
-  // ── 6. THREE ACTION LISTS ─────────────────────────────────────────────────
+  // ── 6. THREE ACTION LISTS (V4.5) ───────────────────────────────────────
+  const scaleEnv = process.env.DST_DATA_SCALE || 'medium';
+  const scaleMultiplier = {small:0.5,medium:1,large:2,hyperscale:4}[scaleEnv] || 1;
+  const scaleLabel = `${scaleEnv} (σ ×${scaleMultiplier})`;
   c += `---\n\n### Action Plan — κ Classification\n\n`;
+  c += `*Scale: **${scaleLabel}** · σ amplifier weights adjusted for environment mass*\n\n`;
+
+  if ((actionLists.expiredKappaICount || 0) > 0) {
+    c += `> ⚠️ **${actionLists.expiredKappaICount} expired @dst-kappa-i annotation(s)** reclassified as κ_a (−15 pts each). Fix or renew.\n\n`;
+  }
 
   if (actionLists.amplify.length > 0) {
     c += `#### 🔴 Resolve First — σ Amplifiers (${actionLists.amplifyTotal} total)\n`;
-    c += `*These scale with load — same code fails worse as data grows.*\n\n`;
+    c += `*Scale with load — ×${scaleMultiplier} weight in this environment.*\n\n`;
     actionLists.amplify.forEach((h, i) => {
       c += `**${i+1}. ${h.type.replace(/_/g,' ')}** — ${h.occurrences}x · ${h.scoreImpact} pts\n`;
       c += `*${h.fix}*\n\n`;
@@ -155,30 +163,42 @@ function buildComment(result) {
 
   if (actionLists.fix.length > 0) {
     c += `#### 🔴 Fix — κ_a Accumulated (${actionLists.fixTotal} total, showing top ${actionLists.fix.length})\n`;
-    c += `*Fully reducible. These accumulated through past decisions. Fix them.*\n\n`;
+    c += `*Fully reducible. Fix them.*\n\n`;
     actionLists.fix.forEach((h, i) => {
-      c += `**${i+1}. ${h.type.replace(/_/g,' ')}** — ${h.occurrences}x · ${h.scoreImpact} pts\n`;
+      const expTag = h.expiredKappaI ? ` ⚠️ *expired κ_i — was ${h.expiresDate}*` : '';
+      c += `**${i+1}. ${h.type.replace(/_/g,' ')}** — ${h.occurrences}x · ${h.scoreImpact} pts${expTag}\n`;
       c += `*${h.fix}*\n\n`;
     });
     if (actionLists.fixTotal > actionLists.fix.length) {
-      c += `*(+${actionLists.fixTotal - actionLists.fix.length} more κ_a findings — run full scan to see all)*\n\n`;
+      c += `*(+${actionLists.fixTotal - actionLists.fix.length} more — run full scan)*\n\n`;
     }
   }
 
   if (actionLists.mitigate.length > 0) {
     c += `#### 🟡 Mitigate — κ_c Conscripted (${actionLists.mitigateTotal} total)\n`;
-    c += `*Domain constraints force these. Bound and instrument — do not try to eliminate.*\n\n`;
+    c += `*Domain constraints force these. Bound and instrument — do not eliminate.*\n\n`;
     actionLists.mitigate.forEach((h, i) => {
       c += `**${i+1}. ${h.type.replace(/_/g,' ')}** — ${h.occurrences}x\n`;
       c += `*Add explicit instrumentation. Accept the structural floor.*\n\n`;
     });
   }
 
-  if (actionLists.fix.length === 0 && actionLists.amplify.length === 0) {
-    c += `✅ No κ_a or σ findings. System is in genuine ρ-dominant state.\n\n`;
+  if ((actionLists.acceptTotal || 0) > 0) {
+    c += `#### 🟢 Accept — κ_i Intentional (${actionLists.acceptTotal} active contracts)\n`;
+    c += `*Documented tradeoffs with expiration dates. Review before they expire.*\n\n`;
+    actionLists.accept.forEach((h, i) => {
+      const daysLeft = Math.ceil((new Date(h.expiresDate) - new Date()) / 86400000);
+      const urgency = daysLeft <= 14 ? ` 🔴 ${daysLeft}d left` : daysLeft <= 30 ? ` 🟡 ${daysLeft}d left` : ` (${daysLeft}d remaining)`;
+      c += `**${i+1}.** expires **${h.expiresDate}**${urgency}\n`;
+      c += `*${h.fix}*\n\n`;
+    });
   }
 
-  // ── 7. WORST FILES ────────────────────────────────────────────────────────
+  if (actionLists.fix.length === 0 && actionLists.amplify.length === 0) {
+    c += `✅ No κ_a or σ findings. System is ρ-dominant.\n\n`;
+  }
+
+    // ── 7. WORST FILES ────────────────────────────────────────────────────────
   if (worstFiles.length > 0 && theta < 80) {
     c += `---\n\n### Files Needing Attention\n\n`;
     c += `| File | Θ | Findings | Lines |\n|---|---|---|---|\n`;
@@ -362,16 +382,40 @@ async function main() {
     await postComment(comment);
   }
 
-  // Fail CI on health score
-  if (FAIL_THRESHOLD > 0 && result.score < FAIL_THRESHOLD) {
-    console.error(`\nDST health score ${result.score} below threshold ${FAIL_THRESHOLD}. Failing CI.`);
+  // ── V4.5: THERMODYNAMIC CI GATES ─────────────────────────────────────
+  // Gate 1: ΔΘ gate — cannot merge negative impact into Residual
+  // Block because this PR makes it sicker — not because the system is sick.
+  const prDelta = result.dThetaDt?.rate ?? 0;
+  if (result.regime.name === 'Residual' && prDelta < 0) {
+    console.error(`
+❌ DST THERMODYNAMIC GATE TRIGGERED
+
+System is in Residual regime (Θ = ${result.theta}/100).
+This PR has a negative thermodynamic impact (ΔΘ = ${prDelta} pts/PR).
+
+You cannot merge negative structural impact into a Residual system.
+Required: Add at least one ρ healing pattern before merging.
+
+DST Framework · Proposition 5 · SSRN 6434119 · Idan Rephiah · 2026`);
     process.exit(1);
   }
 
-  // Fail CI on risk score
+  // Gate 2: static Θ floor (legacy — still supported)
+  if (FAIL_THRESHOLD > 0 && result.theta < FAIL_THRESHOLD) {
+    console.error(`\nDST Θ ${result.theta} below threshold ${FAIL_THRESHOLD}. Failing CI.`);
+    process.exit(1);
+  }
+
+  // Gate 3: risk score ceiling
   if (FAIL_RISK > 0 && result.risk.score > FAIL_RISK) {
     console.error(`\nDST risk score ${result.risk.score} above threshold ${FAIL_RISK}. Failing CI.`);
     process.exit(1);
+  }
+
+  // Gate 4: expired κ_i — warn, don't fail
+  const expiredCount = result.actionLists?.expiredKappaICount || 0;
+  if (expiredCount > 0) {
+    console.warn(`\n⚠️  DST: ${expiredCount} expired @dst-kappa-i annotation(s) reclassified as κ_a. Fix or renew.`);
   }
 }
 

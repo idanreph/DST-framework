@@ -28,9 +28,12 @@ These are not code reviews. They are structural diagnoses — the same framework
 ### [`facebook-react-case-study.md`](./facebook-react-case-study.md)
 **⭐ 228k · Elastic · Θ=100 · Inverted gap −85**
 
-The most surprising finding in the series. V3 scored React at 38/100 (Late Plastic). V4 scores it 100/100 (Elastic). Not a bug — V3 measured damage without measuring repair. V4 measures both.
-
-9,394 ρ signals (typed interfaces, explicit errors, immutable patterns) mathematically compensate 4,465 κ findings. The team's 13 years of TypeScript discipline is structurally real.
+```text
+React     → Θ ~100 → Elastic
+Next.js   → Θ ~65  → Plastic
+Log4j     → Θ   8  → Residual (84 pt gap — CVE-2021-44228)
+Express   → Θ ~0   → Residual
+```
 
 The risk score is 100/100 CRITICAL despite Elastic regime. The health is maintenance-dependent, not structural-default. Stop the ρ discipline and it collapses to Plastic within a quarter.
 
@@ -39,11 +42,15 @@ The risk score is 100/100 CRITICAL despite Elastic regime. The health is mainten
 ### [`nextjs-case-study.md`](./nextjs-case-study.md)
 **⭐ 130k · Plastic · Θ=65 · Gap +15**
 
-The knife-edge case. ρ impact and κ+σ impact separated by just 35 points out of 16,000+ total. That near-parity is what Plastic regime looks like structurally — a system surviving on a balance where neither healing nor masking dominates.
-
-Vercel's TypeScript investment generated real ρ. The dual-router architecture (App Router + Pages Router coexisting), Turbopack integration, and 10 years of feature velocity generated proportional κ. They nearly cancel each other out. That is Plastic.
-
-Recovery path: 3 sprints, 6 weeks, Θ 65 → 78 (Elastic). The TODO audit alone (Sprint 1, documentation only) moves Θ from 65 to 72.
+| File                           | Summary                                                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `facebook-react-case-study.md` | ⭐ 228k stars · **Elastic regime (Θ ~100)** · structure dominates · inverted observability gap · strong ρ discipline |
+| `nextjs-case-study.md`         | ⭐ 130k stars · **Plastic regime (Θ 65)** · 15 pt gap · dual-router κ · corporate scale balance (ρ vs κ)             |
+| `express-v4-case-study.md`     | ⭐ 65k stars · **Residual regime (Θ ~0)** · masking dominates · rewrite signal · structural exhaustion               |
+| `web-llm-chat-case-study.md`   | AI demo system · **Residual (Θ 0)** · 100 pt gap · extreme masking under demo pressure                              |
+| `log4shell-case-study.md`      | 🔥 Apache Log4j · **Residual (Θ 8)** · 84 pt gap · CVE-2021-44228 · $10B+ security disaster predicted by structure |
+| `real-world.md`                | 🔥 Minimal example · before/after DST application · fastest way to understand the model                             |
+| `express-codebase.md`          | Short summary + entry point into full Express analysis                                                              |
 
 ---
 
@@ -140,7 +147,10 @@ Every case study follows the same structure:
 
 The same scanner. The same version. Zero domain knowledge on any codebase.
 
-Four completely different structural diagnoses across every regime. Axiom VI confirmed in both directions — gap runs upward in every Residual case, inverted in React. κ_c correctly protected in all systems: middleware model (Express), lane system (React), webpack API (Next.js), WebGPU chains (web-llm-chat), recursive substitution path (Log4j).
+* React → Elastic
+* Next.js → Plastic
+* Express → Residual
+* Log4j → Residual (security failure predicted)
 
 Domain is irrelevant. Structure is universal.
 

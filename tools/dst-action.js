@@ -1,4 +1,4 @@
-// dst-action.js — v4.5
+// dst-action.js — v4.5-final
 // DST GitHub Action runner
 //
 // v4 additions (math-grounded output):
@@ -14,7 +14,7 @@
 // DST Framework: ρ heals · κ hides · σ kills
 // SSRN 6434119 · Idan Rephiah · 2026
 
-const { runFullScan } = require('./dst-scanner.js');
+const { runFullScan, runSelfScan } = require('./dst-scanner.js');
 const https = require('https');
 
 // ── CONSTANTS ─────────────────────────────────────────────────────────────
@@ -253,6 +253,14 @@ function buildComment(result) {
   c += `*[DST Theory](https://idanreph.github.io/dst--theory-/) · `;
   c += `[GitHub](https://github.com/idanreph/DST-framework)*`;
 
+  // V4.5-final: self-diagnosis — scanner reports its own Θ
+  if (process.env.DST_SELF_SCAN) {
+    const self = runSelfScan();
+    if (self) {
+      c += `\n\n---\n*Scanner self-diagnosis: Θ = ${self.theta}/100 · ${self.regime} · AST: ${self.astActive ? 'active' : 'regex fallback'} · ${self.note}*`;
+    }
+  }
+
   return c;
 }
 
@@ -264,7 +272,7 @@ function buildConsoleOutput(result) {
           dThetaDt, obsGap, sigmaEff, kappaSat, regimePred, rewriteSignal, actionLists } = result;
 
   console.log('\n══════════════════════════════════════════════════');
-  console.log('  DST DIAGNOSTIC — v4');
+  console.log('  DST DIAGNOSTIC — v4.5-final');
   console.log('══════════════════════════════════════════════════\n');
 
   // Rewrite signal — show first if triggered
@@ -334,6 +342,12 @@ function buildConsoleOutput(result) {
     console.log('');
   }
 
+  // V4.5-final: print structuredReport as JSON for pipeline consumers
+  if (process.env.DST_JSON_OUTPUT) {
+    console.log('\n── STRUCTURED REPORT (JSON) ───────────────────────────');
+    console.log(JSON.stringify(result.structuredReport, null, 2));
+    console.log('───────────────────────────────────────────────────────');
+  }
   console.log('  ρ heals · κ hides · σ kills');
   console.log('  SSRN 6434119 · Idan Rephiah · 2026');
   console.log('══════════════════════════════════════════════════\n');

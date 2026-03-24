@@ -7,7 +7,7 @@
 //     Expired κ_i → -15 penalty, reclassified to κ_a, listed in Fix column
 //   - DST_DATA_SCALE: σ amplifiers scaled by environment mass
 //     small=×0.5 · medium=×1.0 · large=×2.0 · hyperscale=×4.0
-//   - AST parallel engine (Babel): AST is now PRIMARY when available
+//   - AST-assisted parallel engine (Babel): AST is primary for supported structural rules
 //     Rule 1 σ: N+1 — await inside loop body (AST-accurate)
 //     Rule 2 κ_a: silent catch — CatchClause with no throw (AST-accurate)
 //     Regex runs as fallback only when @babel/parser unavailable
@@ -797,9 +797,9 @@ function detectKappaI(content, filePath) {
 function detectPatterns(content, filePath) {
   const isPython = PY_EXTS.has(path.extname(filePath));
 
-  // V4.5-final: AST is PRIMARY when available.
-  // Regex runs as fallback only when @babel/parser is not installed.
-  // AST = structural truth. Regex = surface approximation.
+  // V4.5-final: AST is primary for supported structural rules (N+1, silent catch).
+  // Regex remains the broad coverage layer and fallback when Babel is unavailable.
+  // AST = structural truth on the rules it covers. Regex = surface approximation everywhere else.
   const useAST = !isPython && !!babelParser;
 
   let base;
@@ -1349,18 +1349,40 @@ function detectRewriteSignal(theta, dThetaDt, worstFilesList) {
 function runSelfScan() {
   if (!process.env.DST_SELF_SCAN) return null;
   try {
-    const selfPath = __filename;
-    const result   = runFullScan(require('path').dirname(selfPath), {
-      teamSize: 2,
-      engineerCost: 180_000,
-    });
+    // Fix 1: scan only the scanner file itself — not the whole directory.
+    // dirname(__filename) would drag in everything in /tools and produce
+    // noisy, unstable results. scanFile(__filename) is precise.
+    //
+    // Fix 2: recursion guard — unset DST_SELF_SCAN before the inner call
+    // so scanFile cannot trigger runSelfScan again indirectly.
+    const prev = process.env.DST_SELF_SCAN;
+    delete process.env.DST_SELF_SCAN;
+
+    const fileResult = scanFile(__filename);
+
+    process.env.DST_SELF_SCAN = prev; // restore after scan
+
+    if (!fileResult) return null;
+
+    // Derive compact self-report from single-file result
+    const kappaCount = fileResult.findings.filter(f => f.category === 'kappa').length;
+    const sigmaCount = fileResult.findings.filter(f => f.category === 'sigma').length;
+    const rhoCount   = fileResult.rhoFound.length;
+    const rawScore   = Math.max(0, Math.min(100, Math.round(
+      100 + fileResult.findings.reduce((s, f) => s + (f.impact || 0), 0)
+          + fileResult.rhoFound.reduce((s, r) => s + (W[r.type]?.score || 2), 0)
+    )));
+    const regime = classifyRegime(rawScore).name;
+
     return {
-      theta:   result.theta,
-      regime:  result.regime.name,
-      obsGap:  result.obsGap.gap,
-      kappaA:  result.actionLists.fixTotal,
-      astActive: result.astEngineActive,
-      note: 'Scanner diagnoses itself — DST applies to DST',
+      theta:     rawScore,
+      regime,
+      kappaA:    kappaCount,
+      sigma:     sigmaCount,
+      rho:       rhoCount,
+      lines:     fileResult.lines,
+      astActive: !!babelParser,
+      note:      'Scanner diagnoses itself — DST applies to DST',
     };
   } catch { return null; }
 }

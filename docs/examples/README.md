@@ -39,19 +39,49 @@ The risk score is 100/100 CRITICAL despite Elastic regime. The health is mainten
 
 ---
 
+### [`react-v45-rescan.md`](./react-v45-rescan.md)
+**⭐ 228k · Elastic · Θ=100 · V4.5-final rescan**
+
+The V4.5 rescan of facebook/react at commit `ed69815` on the main branch — 4,202 files vs the 1,864 files scanned in V4. The expanded scan surface revealed more κ and σ instances, but ρ grew proportionally faster. Three V4.5 capabilities tested:
+
+- **σ hyperscale:** no Θ change — ρ dominance absorbs 4× σ penalty without regime shift
+- **ΔΘ gate:** clear — React is Elastic, gate never triggers
+- **κ_i contracts:** 0 annotations — expected; the V4.5 feature provides infrastructure the React team hasn't adopted
+
+Key v4.5 finding: σ_eff jumped from 1.6 to 4.8 as the wider scan surface exposed three times as many stress amplifiers. React's ρ:κ ratio is absorbing that increase. The finding worth watching: 22 unbounded growth patterns now masked by κ discipline — if that discipline ever slips, the σ_eff becomes visible immediately.
+
+---
+
 ### [`nextjs-case-study.md`](./nextjs-case-study.md)
 **⭐ 130k · Plastic · Θ=65 · Gap +15**
 
 | File                           | Summary                                                                                                             |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `facebook-react-case-study.md` | ⭐ 228k stars · **Elastic regime (Θ ~100)** · structure dominates · inverted observability gap · strong ρ discipline |
+| `react-v45-rescan.md`          | ⭐ 228k stars · **V4.5-final rescan** · Θ=100 confirmed · +125% files · σ_eff 1.6→4.8 · ρ dominance absorbs hyperscale |
 | `nextjs-case-study.md`         | ⭐ 130k stars · **Plastic regime (Θ 65)** · 15 pt gap · dual-router κ · corporate scale balance (ρ vs κ)             |
+| `nextjs-v45-rescan.md`         | ⭐ 130k stars · **V4.5-final rescan** · Θ=65 confirmed · 35 pt buffer · hyperscale apparent drops 80→20 · gap inverts |
 | `express-v4-case-study.md`     | ⭐ 65k stars · **Residual regime (Θ ~0)** · masking dominates · rewrite signal · structural exhaustion               |
 | `express-v45-rescan.md`        | ⭐ 65k stars · **V4.5-final rescan** · Θ=0 confirmed · ΔΘ gate active · hyperscale collapses apparent to 0          |
 | `web-llm-chat-case-study.md`   | AI demo system · **Residual (Θ 0)** · 100 pt gap · extreme masking under demo pressure                              |
+| `web-llm-chat-v45-rescan.md`   | AI demo system · **V4.5-final rescan** · Θ=0 confirmed · 0 σ findings · hyperscale no effect · gap purely κ_a-driven |
 | `log4shell-case-study.md`      | 🔥 Apache Log4j · **Residual (Θ 8)** · 84 pt gap · CVE-2021-44228 · $10B+ security disaster predicted by structure |
+| `log4shell-v45-rescan.md`      | 🔥 Apache Log4j · **V4.5-final rescan** · hyperscale collapses Θ 8→0 · ΔΘ gate triggered since 2013 · κ_i absence = RCE |
 | `real-world.md`                | 🔥 Minimal example · before/after DST application · fastest way to understand the model                             |
 | `express-codebase.md`          | Short summary + entry point into full Express analysis                                                              |
+
+---
+
+### [`nextjs-v45-rescan.md`](./nextjs-v45-rescan.md)
+**⭐ 130k · Plastic · Θ=65 · V4.5-final rescan**
+
+The V4.5 rescan of vercel/next.js v15.3.0 — same version, same 3,850 files as the V4 scan. The structural verdict is unchanged, but V4.5 adds precision at the margins where Plastic-regime analysis matters most:
+
+- **σ hyperscale:** apparent health drops from 80 to 20 — the 2 unbounded growth patterns in the build system carry 4× weight at production deployment scale; the gap inverts (Θ 65 > Apparent 20)
+- **ΔΘ gate:** not triggered — Plastic regime, not Residual; but the gate would activate automatically if the current trajectory toward κ accumulation continues
+- **κ_i contracts:** 0 annotations — the dual-router coexistence (App Router + Pages Router) and webpack/Turbopack bridge are prime κ_i annotation candidates once the team adopts DST conventions
+
+The 35-point buffer between ρ and κ+σ has not moved. That buffer is the entire margin between Plastic and Late Plastic.
 
 ---
 
@@ -92,6 +122,19 @@ This is demo code built under speed pressure. The team is good. They built it fa
 
 ---
 
+### [`web-llm-chat-v45-rescan.md`](./web-llm-chat-v45-rescan.md)
+**Residual · Θ=0 · Gap +100 · V4.5-final rescan**
+
+The V4.5 rescan of mlc-ai/web-llm-chat — same 71 files as the V4 scan. Web-llm-chat is unique in the dataset: it has 0 σ findings, which means hyperscale scaling has zero effect. The 100-point observability gap is entirely κ_a-driven — no σ amplifiers to scale. What V4.5 adds:
+
+- **σ hyperscale:** no change — 0 σ findings means the scale multiplier has nothing to amplify; the 100-point gap is σ-independent and cannot be closed by scaling
+- **ΔΘ gate:** Condition 1 permanently met — any PR adding κ to a 100%-saturated codebase will show negative dΘ/dt and be blocked on the second scan
+- **κ_i contracts:** 0 annotations — but the κ_c fraction (WebGPU init chains, incomplete upstream types) and κ_i fraction (accepted demo shortcuts) should ideally be annotated; doing so would reduce the genuine κ_a fix target from 179 to approximately 138
+
+The 100-point gap is the maximum in the dataset. V4.5 confirms it is structural, not scale-dependent.
+
+---
+
 ### Log4Shell — The Security Case Study
 **apache/log4j2 · Pre-CVE-2021-44228 · Θ=8 · Gap=84 · $10B disaster**
 
@@ -120,7 +163,20 @@ The observability gap IS the attack surface. When apparent health is 92 and real
 
 Log4Shell was not a bug. It was a structural inevitability. DST doesn't find the specific CVE — it finds the structural conditions that guarantee a CVE will exist.
 
-*Full case study: coming to this folder.*
+*Full case study: [`log4shell-case-study.md`](./log4shell-case-study.md)*
+
+---
+
+### [`log4shell-v45-rescan.md`](./log4shell-v45-rescan.md)
+**apache/log4j2 · Pre-CVE · Θ=8 · V4.5-final rescan**
+
+The V4.5 rescan of the pre-CVE Log4j simulation. The V4 structural verdict stands: Θ=8, Residual, catastrophic failure predicted ~12 months in advance. What V4.5 adds is the strongest enforcement finding in the dataset:
+
+- **σ hyperscale:** Θ collapses from 8 to 0 — at internet deployment scale (the correct scale for a logging library receiving external input), even the single ρ signal in the codebase cannot compensate for 8 σ=∞ amplifiers at 4× weight; the hyperscale run is the structurally correct reading for this deployment context
+- **ΔΘ gate:** would have triggered continuously since approximately 2013 — every PR adding κ to a codebase with dΘ/dt = −6.2/year would have been blocked; the gate would have forced structural remediation years before CVE exploitation
+- **κ_i contracts:** 0 annotations — and this absence is the structural explanation for the disaster; `enableSubstitutionInVariables = true`, the JndiLookup protocol handling, and the silent-exception patterns were all unacknowledged, undated, unowned κ_a; if each had carried a `@dst-kappa-i: expires YYYY-MM-DD` annotation, CI would have generated a gate failure when the deadline passed — before the vulnerability could be exploited at scale
+
+The Log4Shell v4.5 rescan does not add new structural findings — V4 already predicted the CVE. What it demonstrates is that the enforcement infrastructure to have prevented the disaster was structurally available and absent.
 
 ---
 
@@ -165,6 +221,9 @@ The same scanner. The same version. Zero domain knowledge on any codebase.
 * Next.js → Plastic
 * Express → Residual
 * Log4j → Residual (security failure predicted)
+* web-llm-chat → Residual (maximum observability gap)
+
+V4.5 rescan files add a second structural layer across all five systems — confirming the regime verdicts are stable, and surfacing what the new enforcement and scaling capabilities reveal at each regime position.
 
 Domain is irrelevant. Structure is universal.
 
